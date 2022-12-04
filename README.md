@@ -17,3 +17,7 @@ The main elements are
 
 (c) Use of AutoSK learn, to train and evaluate a classifer on the features
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> de8471c1fa5ea1c74770afe020624e89cdf50cc9
