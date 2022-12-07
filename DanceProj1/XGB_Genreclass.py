@@ -55,5 +55,5 @@ def get_XGBclassifier():
     yprobdf['True_Label'] = y_test.values
     yprobdf['id'] = test_ids.values
 
-    return xgb_mod, y_pred, yprobdf
+    return testset, xgb_mod, y_pred, yprobdf
     
