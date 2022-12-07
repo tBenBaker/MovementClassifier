@@ -54,7 +54,19 @@
                      choices: ["Next"],
                      stimulus: "Welcome to this dance science experiment! <br /> <br /> You will be asked a few questions about your dance background, then asked to guess the genre of some short dance clips. <br /> <br /> If you would like to participate, press the button below.",
                  },
- 
+
+                 {
+                     type: jsPsychSurveyLikert,
+                     scale_width: LIKERT_WIDTH,
+                     questions: [
+                         {
+                             prompt: "Have you tried this experiment before?",
+                             labels: ["No", "Once", "Twice", "3-5 times", "More than 5 times"],
+                             required: true,
+                         },
+                     ],
+                 },
+
                  {
                      type: jsPsychSurveyLikert,
                      scale_width: LIKERT_WIDTH,
