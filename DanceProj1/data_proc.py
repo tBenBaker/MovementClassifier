@@ -45,6 +45,9 @@ def get_data(path):
     genredataFM = {'Break':[], 'Pop':[], 'Lock':[], 'Midhop':[], 'LAhop':[], 'House':[], 'Waack':[],
                     'Krump':[], 'Street Jazz':[], 'Ballet Jazz':[]}
 
+    #note we deleted the following IDs from the keypoints folder, because of HTTP errors
+    #'gJB_sFM_cAll_d08_mJB3_ch11', 'gBR_sFM_cAll_d05_mBR5_ch14', 'gJS_sFM_cAll_d02_mJS0_ch08', 'gWA_sFM_cAll_d26_mWA2_ch10']
+    #gBR_sFM_cAll_d06_mBR5_ch19, 'gBR_sFM_cAll_d04_mBR4_ch07'
 
     for i, genre in enumerate(genrefilesBM):
         for filename in genre:
@@ -61,6 +64,7 @@ def get_data(path):
             pos = np.swapaxes(unpickled,0,1)
             pos = np.delete(pos, [2,3], 0)
             genredataFM[list(genredataFM.keys())[i]].append((pos,id))
+
 
     return genredataBM, genredataFM 
     
@@ -83,6 +87,8 @@ def data_to_features(dataBM, dataFM):
             dance.id = dataFM[genre][i][1]
             dance.get_features()
             featuresFM.append(dance.features)
+
+
             
     #turn these into dataframes
     dfBM = pd.DataFrame(featuresBM)
@@ -126,3 +132,6 @@ def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.5, testfrac_bas=0, val
     valid = pd.concat([valid_bas, valid_adv])      
 
     return train, valid, testset
+
+
+ 
