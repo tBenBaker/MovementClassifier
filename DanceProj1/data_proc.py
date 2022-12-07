@@ -65,7 +65,6 @@ def get_data(path):
             pos = np.delete(pos, [2,3], 0)
             genredataFM[list(genredataFM.keys())[i]].append((pos,id))
 
-
     return genredataBM, genredataFM 
     
 def data_to_features(dataBM, dataFM):
@@ -87,7 +86,6 @@ def data_to_features(dataBM, dataFM):
             dance.id = dataFM[genre][i][1]
             dance.get_features()
             featuresFM.append(dance.features)
-
 
             
     #turn these into dataframes
