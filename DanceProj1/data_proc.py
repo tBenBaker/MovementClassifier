@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 sys.path.append("../../")
 
-from DanceProj1.DanceObjMore import Dance
+from DanceProj1.DanceObj import Dance
 
 
 def get_data(path):
@@ -96,14 +96,19 @@ def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.5, testfrac_bas=0, val
     testset = pd.DataFrame(columns=dfAdvanced.columns)  #initialize testset
     Genres = list(dfAdvanced.Genre.unique())        #get list of genres
     for genre in Genres:                        #for each genre
-        test = dfAdvanced.loc[dfAdvanced.Genre == genre].sample(frac=.5, random_state=1) #get 50% of advanced dances
-        testset = pd.concat([testset, test])        #add to testset
+        test_adv = dfAdvanced.loc[dfAdvanced.Genre == genre].sample(frac=testfrac_adv, random_state=1) #get 50% of advanced dances
+        testset = pd.concat([testset, test_adv])        #add to testset
 
     nontest_advanced = dfAdvanced.drop(testset.index)   #get the rest of the advanced dances
 
+    test_bas = pd.DataFrame(columns=dfBasic.columns)    #initialize testset for basic dances
+    for genre in Genres:
+        test_bas = dfBasic.loc[dfBasic.Genre == genre].sample(frac=testfrac_bas, random_state=1)
+        testset = pd.concat([testset, test_bas])        #add to testset
+
     valid_adv = pd.DataFrame(columns=dfAdvanced.columns)    #same for validation set
     for genre in Genres:
-        val = nontest_advanced.loc[nontest_advanced.Genre == genre].sample(frac=.2, random_state=1)
+        val = nontest_advanced.loc[nontest_advanced.Genre == genre].sample(frac=valfrac_adv_nonT, random_state=1)
         valid_adv = pd.concat([valid_adv, val])
 
     train_adv = nontest_advanced.drop(valid_adv.index)    #nontest, nonval advanced dances are training set
@@ -111,10 +116,11 @@ def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.5, testfrac_bas=0, val
     valid_bas = pd.DataFrame(columns=dfBasic.columns)   #but validation pulls from basic dances too
     Genres = list(dfAdvanced.Genre.unique())
     for genre in Genres:
-        val = dfBasic.loc[dfBasic.Genre == genre].sample(frac=.12, random_state=1)
+        val = dfBasic.loc[dfBasic.Genre == genre].sample(frac=valfrac_bas, random_state=1)
         valid_bas = pd.concat([valid_bas, val])
 
     train_bas = dfBasic.drop(valid_bas.index)   #training set includes the nonval basic dances
+    train_bas = train_bas.drop(test_bas.index)  #and the non-test basic dances (none, by default)
 
     train = pd.concat([train_bas, train_adv])   #concatenate training and validation sets across Advanced and Basic
     valid = pd.concat([valid_bas, valid_adv])      
