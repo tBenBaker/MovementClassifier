@@ -45,6 +45,14 @@ def get_data(path):
     genredataFM = {'Break':[], 'Pop':[], 'Lock':[], 'Midhop':[], 'LAhop':[], 'House':[], 'Waack':[],
                     'Krump':[], 'Street Jazz':[], 'Ballet Jazz':[]}
 
+    #note we deleted the following IDs from the keypoints folder, because of HTTP errors:
+    #'gJB_sFM_cAll_d08_mJB3_ch11', 'gBR_sFM_cAll_d05_mBR5_ch14', 'gJS_sFM_cAll_d02_mJS0_ch08', 'gWA_sFM_cAll_d26_mWA2_ch10']
+    #gBR_sFM_cAll_d06_mBR5_ch19, 'gBR_sFM_cAll_d04_mBR4_ch07', gJS_sFM_cAll_d01_mJS1_ch02, gJS_sFM_cAll_d03_mJS0_ch01
+
+    #deleted the following IDs from the keypoints folder, because of pose tracking errors
+    #gJS_sFM_cAll_d01_mJS0_ch01.mp4 
+
+    #manually add gBR_sBM_cAll_d04_mBR0_ch02 to the csv, for the example clip 
 
     for i, genre in enumerate(genrefilesBM):
         for filename in genre:
@@ -83,6 +91,7 @@ def data_to_features(dataBM, dataFM):
             dance.id = dataFM[genre][i][1]
             dance.get_features()
             featuresFM.append(dance.features)
+
             
     #turn these into dataframes
     dfBM = pd.DataFrame(featuresBM)
@@ -96,14 +105,19 @@ def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.5, testfrac_bas=0, val
     testset = pd.DataFrame(columns=dfAdvanced.columns)  #initialize testset
     Genres = list(dfAdvanced.Genre.unique())        #get list of genres
     for genre in Genres:                        #for each genre
-        test = dfAdvanced.loc[dfAdvanced.Genre == genre].sample(frac=.5, random_state=1) #get 50% of advanced dances
-        testset = pd.concat([testset, test])        #add to testset
+        test_adv = dfAdvanced.loc[dfAdvanced.Genre == genre].sample(frac=testfrac_adv, random_state=1) #get 50% of advanced dances
+        testset = pd.concat([testset, test_adv])        #add to testset
 
     nontest_advanced = dfAdvanced.drop(testset.index)   #get the rest of the advanced dances
 
+    test_bas = pd.DataFrame(columns=dfBasic.columns)    #initialize testset for basic dances
+    for genre in Genres:
+        test_bas = dfBasic.loc[dfBasic.Genre == genre].sample(frac=testfrac_bas, random_state=1)
+        testset = pd.concat([testset, test_bas])        #add to testset
+
     valid_adv = pd.DataFrame(columns=dfAdvanced.columns)    #same for validation set
     for genre in Genres:
-        val = nontest_advanced.loc[nontest_advanced.Genre == genre].sample(frac=.2, random_state=1)
+        val = nontest_advanced.loc[nontest_advanced.Genre == genre].sample(frac=valfrac_adv_nonT, random_state=1)
         valid_adv = pd.concat([valid_adv, val])
 
     train_adv = nontest_advanced.drop(valid_adv.index)    #nontest, nonval advanced dances are training set
@@ -111,12 +125,16 @@ def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.5, testfrac_bas=0, val
     valid_bas = pd.DataFrame(columns=dfBasic.columns)   #but validation pulls from basic dances too
     Genres = list(dfAdvanced.Genre.unique())
     for genre in Genres:
-        val = dfBasic.loc[dfBasic.Genre == genre].sample(frac=.12, random_state=1)
+        val = dfBasic.loc[dfBasic.Genre == genre].sample(frac=valfrac_bas, random_state=1)
         valid_bas = pd.concat([valid_bas, val])
 
     train_bas = dfBasic.drop(valid_bas.index)   #training set includes the nonval basic dances
+    train_bas = train_bas.drop(test_bas.index)  #and the non-test basic dances (none, by default)
 
     train = pd.concat([train_bas, train_adv])   #concatenate training and validation sets across Advanced and Basic
     valid = pd.concat([valid_bas, valid_adv])      
 
     return train, valid, testset
+
+
+ 

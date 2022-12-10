@@ -1,0 +1,1 @@
+aistpath = '../../aist_keypoints' #path to 3d keypoint position arrays, as pkl files
