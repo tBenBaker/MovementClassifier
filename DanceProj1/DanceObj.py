@@ -147,17 +147,17 @@ class Dance:
             Lacc += np.sum(self.acceleration[j], axis=1)
             Ljer += np.sum(self.jerk[j], axis=1)
 
-        velratio = Rvel / Lvel
-        accelratio = Racc / Lacc
-        jerkratio = Rjer / Ljer
+        velratioRL = Rvel / Lvel
+        accelratioRL = Racc / Lacc
+        jerkratioRL = Rjer / Ljer
               
-        self.features['Asym_RL_vel'] = np.sum(velratio)   
-        self.features['Asym_RL_acc'] = np.sum(accelratio) 
-        self.features['Asym_RL_jer'] = np.sum(jerkratio) 
+        self.features['Asym_RL_vel'] = np.sum(velratioRL)   
+        self.features['Asym_RL_acc'] = np.sum(accelratioRL) 
+        self.features['Asym_RL_jer'] = np.sum(jerkratioRL) 
         
-        velratiomoments = np.split(velratio, self.moments)             #split each div by moment = 15frames = 1/4sec
-        accelratiomoments = np.split(accelratio, self.moments)
-        jerkratiomoments = np.split(jerkratio, self.moments)
+        velratiomoments = np.split(velratioRL, self.moments)             #split each div by moment = 15frames = 1/4sec
+        accelratiomoments = np.split(accelratioRL, self.moments)
+        jerkratiomoments = np.split(jerkratioRL, self.moments)
         
         velmeans = [[] for i in range(len(self.moments))]
         accelmeans = [[] for i in range(len(self.moments))]
@@ -186,17 +186,17 @@ class Dance:
             Outacc += np.sum(self.acceleration[j], axis=1)
             Outjer += np.sum(self.jerk[j], axis=1)
 
-        velratio = Invel / Outvel
-        accelratio = Inacc / Outacc
-        jerkratio = Injer / Outjer
+        velratioIO = Invel / Outvel
+        accelratioIO = Inacc / Outacc
+        jerkratioIO = Injer / Outjer
               
-        self.features['Asym_IO_vel'] = np.sum(velratio)   
-        self.features['Asym_IO_acc'] = np.sum(accelratio) 
-        self.features['Asym_IO_jer'] = np.sum(jerkratio) 
+        self.features['Asym_IO_vel'] = np.sum(velratioIO)   
+        self.features['Asym_IO_acc'] = np.sum(accelratioIO) 
+        self.features['Asym_IO_jer'] = np.sum(jerkratioIO) 
         
-        velratiomoments = np.split(velratio, self.moments)             
-        accelratiomoments = np.split(accelratio, self.moments)
-        jerkratiomoments = np.split(jerkratio, self.moments)
+        velratiomoments = np.split(velratioIO, self.moments)             
+        accelratiomoments = np.split(accelratioIO, self.moments)
+        jerkratiomoments = np.split(jerkratioIO, self.moments)
         
         velmeans = [[] for i in range(len(self.moments))]
         accelmeans = [[] for i in range(len(self.moments))]
@@ -219,23 +219,24 @@ class Dance:
             Topvel += np.sum(self.velocity[j], axis=1)            
             Topacc += np.sum(self.acceleration[j], axis=1)
             Topjer += np.sum(self.jerk[j], axis=1)
-            
-        for j in Outidxs:
+
+
+        for j in Botidxs:
             Botvel += np.sum(self.velocity[j], axis=1)
             Botacc += np.sum(self.acceleration[j], axis=1)
             Botjer += np.sum(self.jerk[j], axis=1)
 
-        velratio = Topvel / Botvel
-        accelratio = Topacc / Botacc
-        jerkratio = Topjer / Botjer
+        velratioTB = Topvel / Botvel
+        accelratioTB = Topacc / Botacc
+        jerkratioTB = Topjer / Botjer
               
-        self.features['Asym_TB_vel'] = np.sum(velratio)   
-        self.features['Asym_TB_acc'] = np.sum(accelratio) 
-        self.features['Asym_TB_jer'] = np.sum(jerkratio) 
+        self.features['Asym_TB_vel'] = np.sum(velratioTB)   
+        self.features['Asym_TB_acc'] = np.sum(accelratioTB) 
+        self.features['Asym_TB_jer'] = np.sum(jerkratioTB) 
         
-        velratiomoments = np.split(velratio, self.moments)             
-        accelratiomoments = np.split(accelratio, self.moments)
-        jerkratiomoments = np.split(jerkratio, self.moments)
+        velratiomoments = np.split(velratioTB, self.moments)             
+        accelratiomoments = np.split(accelratioTB, self.moments)
+        jerkratiomoments = np.split(jerkratioTB, self.moments)
         
         velmeans = [[] for i in range(len(self.moments))]
         accelmeans = [[] for i in range(len(self.moments))]

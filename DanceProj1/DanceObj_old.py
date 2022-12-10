@@ -220,7 +220,7 @@ class Dance:
             Topacc += np.sum(self.acceleration[j], axis=1)
             Topjer += np.sum(self.jerk[j], axis=1)
             
-        for j in Outidxs:
+        for j in Botidxs:
             Botvel += np.sum(self.velocity[j], axis=1)
             Botacc += np.sum(self.acceleration[j], axis=1)
             Botjer += np.sum(self.jerk[j], axis=1)

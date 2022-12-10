@@ -5,8 +5,6 @@ import sys
 sys.path.append("../../")
 from DanceProj1.DanceObj import Dance
 from DanceProj1.data_proc import get_data, data_to_features
-import autosklearn.classification
-import sklearn.metrics
 import xgboost as xgb
 
 def get_XGBclassifier():
@@ -46,7 +44,8 @@ def get_XGBclassifier():
     #y_validxgb = y_valid.replace(labels, list(range(len(labels))), regex=True)
     #y_testxgb = y_test.replace(labels, list(range(len(labels))), regex=True)
 
-    xgb_mod = xgb.XGBClassifier(objective='multi:softprob', random_state=42, n_jobs=16)
+    xgb_mod = xgb.XGBClassifier(objective='multi:softprob', eta =.2, max_depth =8, subsample =.6, random_state=42, n_jobs=16) 
+    #learning rate, max depth and subsample tuned empirically
     xgb_mod.fit(X_train, y_trainxgb)
     y_pred = xgb_mod.predict(X_test)
     y_proba_pred = xgb_mod.predict_proba(X_test)
