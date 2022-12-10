@@ -42,7 +42,8 @@ def get_XGBclassifier():
 
     y_trainxgb = y_train.replace(labels, list(range(len(labels))), regex=True)
     #y_validxgb = y_valid.replace(labels, list(range(len(labels))), regex=True)
-    #y_testxgb = y_test.replace(labels, list(range(len(labels))), regex=True)
+    y_test = y_test.replace(labels, list(range(len(labels))), regex=True)
+    X_test = X_test.replace(labels, list(range(len(labels))), regex=True)
 
     xgb_mod = xgb.XGBClassifier(objective='multi:softprob', eta =.2, max_depth =8, subsample =.6, random_state=42, n_jobs=16) 
     #learning rate, max depth and subsample tuned empirically
@@ -51,8 +52,8 @@ def get_XGBclassifier():
     y_proba_pred = xgb_mod.predict_proba(X_test)
     yprobdf = pd.DataFrame(y_proba_pred, columns=labels)
     yprobdf['Original Index'] = index_lookup['original_index']
-    yprobdf['True_Label'] = y_test.values
+    yprobdf['True_Label'] = y_test_strings
     yprobdf['id'] = test_ids.values
 
-    return testset, xgb_mod, y_pred, yprobdf
+    return xgb_mod, X_test, y_test, y_pred, y_proba_pred, yprobdf
     
