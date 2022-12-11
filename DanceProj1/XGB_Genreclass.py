@@ -13,12 +13,13 @@ def get_XGBclassifier():
     dataBM, dataFM = get_data('../../aist_keypoints')    #get keypoint data
     dfBasic, dfAdvanced = data_to_features(dataBM, dataFM)  #get features as dataframes
 
-    #make new indexes for Advanced, starting after last index in Basic, for unique index per id
-    new_index_advanced = range(len(dfBasic.index), len(dfBasic.index)+len(dfAdvanced.index))
-    dfAdvanced.index = dfAdvanced.index + new_index_advanced
     #alphabetize dfs by genre (to avoid reordering by classifiers later)
-    dfBasic = dfBasic.sort_values(by='Genre')
     dfAdvanced = dfAdvanced.sort_values(by='Genre')
+
+    #make new indexes for Advanced, starting after last index in Basic, for unique index per id
+    #this is so that Basic and Adv indexes dont overlap.
+    dfAdvanced.index = range(len(dfBasic.index), len(dfBasic.index)+len(dfAdvanced.index))
+    dfAdvanced.head() 
 
     from DanceProj1.data_proc import traintestval_split
     train, valid, testset = traintestval_split(dfBasic, dfAdvanced, 
