@@ -151,7 +151,7 @@ class Dance:
         accelratioRL = Racc / Lacc
         jerkratioRL = Rjer / Ljer
               
-        self.features['Asym_RL_vel'] = np.sum(velratioRL)   
+        self.features['Asym_RL_vel'] = np.sum(velratioRL)  
         self.features['Asym_RL_acc'] = np.sum(accelratioRL) 
         self.features['Asym_RL_jer'] = np.sum(jerkratioRL) 
         
