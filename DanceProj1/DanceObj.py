@@ -282,28 +282,7 @@ class Dance:
         
         self.get_sacrum()
         
-        #acceleration autocorrelation features
-        #autocorr features for sacrum in up/down direction
-        sacrum_ay_corr = np.correlate(self.sacrum[2][:,1], self.sacrum[2][:,1], mode='full')    
-        peaks_ay = find_peaks(sacrum_ay_corr, height=0, prominence=1e-4)                   #find peaks in autocorrelation
-        start = len(peaks_ay[0])//2                                                #find peak closest to zero lag
-        heights_ay = peaks_ay[1]['peak_heights'][start:]                 #get heights of peaks
-        prominences_ay = peaks_ay[1]['prominences'][start:]         #get prominences of peaks
-                                      
-        self.features['Autocorr_sac_height_ay'] = heights_ay[0]     #first peak height
-        
-        top_prom_ay = []                                    #prominences of top n peaks
-        shortestpeak_ay = np.sort(heights_ay)[::-1][npeaks]    #height of nth tallest peak = shortest we care about
-        for h in range(len(heights_ay)):            
-            if heights_ay[h] >= shortestpeak_ay:
-                top_prom_ay.append(prominences_ay[h])       #loop through peaks and get prominences of top n peaks 
-                
-        self.features['Autocorr_sac_prominence1_ay'] = np.sort(top_prom_ay)[::-1][0]
-        self.features['Autocorr_sac_prominence2_ay'] = np.sort(top_prom_ay)[::-1][1]
-        self.features['Autocorr_sac_prominence3_ay'] = np.sort(top_prom_ay)[::-1][2]
-        #self.features['Autocorr_sac_prominence4_ay'] = np.sort(top_prom_ay)[::-1][3]
-        self.features['Autocorr_sac_prominence_ay_std'] = np.std(np.sort(top_prom_ay)[::-1])       #variance of prominences of top n peaks
-        
+        #acceleration autocorrelation features    
         #autocorr features for sacrum in horizontal plane
         sacrum_axz_corr = np.correlate(self.sacrum[2][:,0], self.sacrum[2][:,0], mode='full') + np.correlate(self.sacrum[2][:,2], self.sacrum[2][:,2], mode='full')
         peaks_axz = find_peaks(sacrum_axz_corr, height=0, prominence=1e-4)
@@ -324,6 +303,27 @@ class Dance:
         self.features['Autocorr_sac_prominence3_axz'] = np.sort(top_prom_axz)[::-1][2]
         #self.features['Autocorr_sac_prominence4_axz'] = np.sort(top_prom_axz)[::-1][3]
         self.features['Autocorr_sac_prominence_axz_std'] = np.std(np.sort(top_prom_axz)[::-1])
+
+        #autocorr features for sacrum in up/down direction
+        sacrum_ay_corr = np.correlate(self.sacrum[2][:,1], self.sacrum[2][:,1], mode='full')    
+        peaks_ay = find_peaks(sacrum_ay_corr, height=0, prominence=1e-4)                   #find peaks in autocorrelation
+        start = len(peaks_ay[0])//2                                                #find peak closest to zero lag
+        heights_ay = peaks_ay[1]['peak_heights'][start:]                 #get heights of peaks
+        prominences_ay = peaks_ay[1]['prominences'][start:]         #get prominences of peaks
+                                      
+        self.features['Autocorr_sac_height_ay'] = heights_ay[0]     #first peak height
+        
+        top_prom_ay = []                                    #prominences of top n peaks
+        shortestpeak_ay = np.sort(heights_ay)[::-1][npeaks]    #height of nth tallest peak = shortest we care about
+        for h in range(len(heights_ay)):            
+            if heights_ay[h] >= shortestpeak_ay:
+                top_prom_ay.append(prominences_ay[h])       #loop through peaks and get prominences of top n peaks 
+                
+        self.features['Autocorr_sac_prominence1_ay'] = np.sort(top_prom_ay)[::-1][0]
+        self.features['Autocorr_sac_prominence2_ay'] = np.sort(top_prom_ay)[::-1][1]
+        self.features['Autocorr_sac_prominence3_ay'] = np.sort(top_prom_ay)[::-1][2]
+        #self.features['Autocorr_sac_prominence4_ay'] = np.sort(top_prom_ay)[::-1][3]
+        self.features['Autocorr_sac_prominence_ay_std'] = np.std(np.sort(top_prom_ay)[::-1])       #variance of prominences of top n peaks
    
         #autocorr of combined wrists [7,8], combined ankles [13,14], per dimension 
 
@@ -478,6 +478,27 @@ class Dance:
         self.features['Contracorr_LeRk_prominence_a_std'] = np.std(np.sort(top_prom_contracorr_LeRk)[::-1])
 
         #jerk autocorrelation features
+        #autocorr features for sacrum in horizontal plane, jerk
+        sacrum_jxz_corr = np.correlate(self.sacrum[3][:,0], self.sacrum[3][:,0], mode='full') + np.correlate(self.sacrum[3][:,2], self.sacrum[3][:,2], mode='full')
+        peaks_jxz = find_peaks(sacrum_jxz_corr, height=0, prominence=1e-4)
+        start = len(peaks_jxz[0])//2
+        heights_jxz = peaks_jxz[1]['peak_heights'][start:]
+        prominences_jxz = peaks_jxz[1]['prominences'][start:]    
+        
+        self.features['Autocorr_sac_height_jxz'] = heights_jxz[0]
+        
+        top_prom_jxz = []
+        shortestpeak_jxz = np.sort(heights_jxz)[::-1][npeaks]
+        for h in range(len(heights_jxz)):
+            if heights_jxz[h] >= shortestpeak_jxz:
+                top_prom_jxz.append(prominences_jxz[h])
+                
+        self.features['Autocorr_sac_prominence1_jxz'] = np.sort(top_prom_jxz)[::-1][0]
+        self.features['Autocorr_sac_prominence2_jxz'] = np.sort(top_prom_jxz)[::-1][1]
+        self.features['Autocorr_sac_prominence3_jxz'] = np.sort(top_prom_jxz)[::-1][2]
+        #self.features['Autocorr_sac_prominence4_jxz'] = np.sort(top_prom_jxz)[::-1][3]
+        self.features['Autocorr_sac_prominences_jxz_var'] = np.var(np.sort(top_prom_jxz)[::-1])
+
         #autocorr features for sacrum in up/down direction, jerk
         sacrum_jy_corr = np.correlate(self.sacrum[3][:,1], self.sacrum[3][:,1], mode='full')    
         peaks_jy = find_peaks(sacrum_jy_corr, height=0, prominence=1e-4)                   #find peaks in autocorrelation
@@ -499,26 +520,6 @@ class Dance:
         #self.features['Autocorr_sac_prominence4_jy'] = np.sort(top_prom_jy)[::-1][3]
         self.features['Autocorr_sac_prominences_jy_std'] = np.std(np.sort(top_prom_jy)[::-1])       #variance of prominences of top n peaks
         
-        #autocorr features for sacrum in horizontal plane, jerk
-        sacrum_jxz_corr = np.correlate(self.sacrum[3][:,0], self.sacrum[3][:,0], mode='full') + np.correlate(self.sacrum[3][:,2], self.sacrum[3][:,2], mode='full')
-        peaks_jxz = find_peaks(sacrum_jxz_corr, height=0, prominence=1e-4)
-        start = len(peaks_jxz[0])//2
-        heights_jxz = peaks_jxz[1]['peak_heights'][start:]
-        prominences_jxz = peaks_jxz[1]['prominences'][start:]    
-        
-        self.features['Autocorr_sac_height_jxz'] = heights_jxz[0]
-        
-        top_prom_jxz = []
-        shortestpeak_jxz = np.sort(heights_jxz)[::-1][npeaks]
-        for h in range(len(heights_jxz)):
-            if heights_jxz[h] >= shortestpeak_jxz:
-                top_prom_jxz.append(prominences_jxz[h])
-                
-        self.features['Autocorr_sac_prominence1_jxz'] = np.sort(top_prom_jxz)[::-1][0]
-        self.features['Autocorr_sac_prominence2_jxz'] = np.sort(top_prom_jxz)[::-1][1]
-        self.features['Autocorr_sac_prominence3_jxz'] = np.sort(top_prom_jxz)[::-1][2]
-        #self.features['Autocorr_sac_prominence4_jxz'] = np.sort(top_prom_jxz)[::-1][3]
-        self.features['Autocorr_sac_prominences_jxz_var'] = np.var(np.sort(top_prom_jxz)[::-1])
    
         #autocorr of combined wrists [7,8], combined ankles [13,14], per dimension, jerk 
 
