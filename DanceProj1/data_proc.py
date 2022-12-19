@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 sys.path.append("../../")
 
-from DanceProj1.DanceObj import Dance
+from DanceProj1.DanceObjNew import Dance
 
 
 def get_data(path):
@@ -47,7 +47,8 @@ def get_data(path):
 
     #note we deleted the following IDs from the keypoints folder, because of HTTP errors:
     #'gJB_sFM_cAll_d08_mJB3_ch11', 'gBR_sFM_cAll_d05_mBR5_ch14', 'gJS_sFM_cAll_d02_mJS0_ch08', 'gWA_sFM_cAll_d26_mWA2_ch10']
-    #gBR_sFM_cAll_d06_mBR5_ch19, 'gBR_sFM_cAll_d04_mBR4_ch07', gJS_sFM_cAll_d01_mJS1_ch02, gJS_sFM_cAll_d03_mJS0_ch01
+    #gBR_sFM_cAll_d06_mBR5_ch19, 'gBR_sFM_cAll_d04_mBR4_ch07', gJS_sFM_cAll_d01_mJS1_ch02, gJS_sFM_cAll_d03_mJS0_ch01,
+    #gBR_sFM_cAll_d06_mBR4_ch20
 
     #deleted the following IDs from the keypoints folder, because of pose tracking errors
     #gJS_sFM_cAll_d01_mJS0_ch01.mp4 
