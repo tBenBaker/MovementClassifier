@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 sys.path.append("../../")
 
-from DanceProj1.DanceObjNew import Dance
+from DanceProj1.DanceObj_scratch import Dance
 
 
 def get_data(path):
@@ -53,6 +53,8 @@ def get_data(path):
     #deleted the following IDs from the keypoints folder, because of pose tracking errors
     #gJS_sFM_cAll_d01_mJS0_ch01.mp4 
 
+    #deleted the following (basic) pieces from the keypoints folder, because of index errors
+
     #manually add gBR_sBM_cAll_d04_mBR0_ch02 to the csv, for the example clip 
 
     for i, genre in enumerate(genrefilesBM):
@@ -73,15 +75,22 @@ def get_data(path):
 
     return genredataBM, genredataFM 
     
-def data_to_features(dataBM, dataFM):
+def data_to_features(dataBM, dataFM, sparse=False):
 
-    featuresBM = []                     # list for feature-dictionaries for all basic dances                          
+    featuresBM = []                     # list for feature-dictionaries for all basic dances    
+    errors = []
+
     for genre in dataBM:
         for i in range(len(dataBM[genre])):
             dance = Dance(dataBM[genre][i][0], 1/60)   #create Dance object for each basic dance
             dance.genre = genre                             #add genre
             dance.id = dataBM[genre][i][1]             #add id
-            dance.get_features()                            #get features
+            try:
+                dance.get_features(sparse=sparse)    #do a try / except here, print the ID where the error occured and then continue    
+            except IndexError:
+                print(dance.id)
+                errors.append(dance.id)
+                continue
             featuresBM.append(dance.features)                   #add feature-dict to list
     
     featuresFM = []                     # repeat for all advanced dances
@@ -90,8 +99,15 @@ def data_to_features(dataBM, dataFM):
             dance = Dance(dataFM[genre][i][0], 1/60)
             dance.genre = genre
             dance.id = dataFM[genre][i][1]
-            dance.get_features()
+            try:
+                dance.get_features(sparse=sparse)
+            except IndexError:
+                print(dance.id)
+                errors.append(dance.id)
+                continue
             featuresFM.append(dance.features)
+    
+    print('there were index errors on', len(errors), 'dances')
 
             
     #turn these into dataframes

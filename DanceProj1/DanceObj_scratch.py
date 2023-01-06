@@ -294,50 +294,95 @@ class Dance:
             self.features['Asym_TB_jer_std'] = np.std(jerkmeans) 
             self.features['Asym_TB_vel_std'] = np.std(velmeans)
 
-    def get_joint_corr(self, jointaccel1, jointaccel2, label, dim, prominence=.0001, distance=30, sparse=False):
+    def get_joint_corr(self, jointaccel1, jointaccel2, label, prominence=.0001, distance=30, sparse=False):
         
-        #change to autocorrelations, summed and split in two
-
-
+        #will look at vertical and horizontal dimensions separately
         #get correlation of acceleration between two joints in a given dimension
-        move1 = jointaccel1.T[dim]
-        move2 = jointaccel2.T[dim]
+
+        moves1 = [jointaccel1.T[i] for i in range(3)] #list of acceleration data for each joint in each dimension
+        moves2 = [jointaccel2.T[i] for i in range(3)]
         
-        x = (np.correlate(move1, move1, mode='full') + np.correlate(move2, move2, mode='full')) / 2
-        x = x[x.size//2:] #take only positive lags
-        x = x / x[0] #normalize
+        corry = (np.correlate(moves1[1], moves1[1], mode='full') + np.correlate(moves2[1], moves2[1], mode='full')) / 2
+        corry = corry[corry.size//2:] #take only positive lags
+        corry = corry / corry[0] #normalize
+        corrxz = (np.correlate(moves1[0], moves1[0], mode='full') + np.correlate(moves2[0], moves2[0], mode='full') +
+                np.correlate(moves1[2], moves1[2], mode='full') + np.correlate(moves2[2], moves2[2], mode='full')) / 2
+        corrxz = corrxz[corrxz.size//2:] #take only positive lags
+        corrxz = corrxz / corrxz[0] #normalize
 
-        peaks, properties = find_peaks(x, prominence=prominence, distance=distance, height=0)
-        lastpeak = peaks[-1]
-        onehit = properties['peak_heights'][0]
-        deviate = np.std(x[:lastpeak]) / lastpeak
-        peak1 = peaks[np.argsort(properties['peak_heights'])[-1]] / len(x) #get top peak's time lag
-        peak2 = peaks[np.argsort(properties['peak_heights'])[-2]] / len(x) #get 2nd peak's time lag
-        prom1 = properties['prominences'][np.argsort(properties['peak_heights'])[-1]] #get top peak's prominence
-        prom2 = properties['prominences'][np.argsort(properties['peak_heights'])[-2]] #get 2nd peak's prominence
-        dimlabel = ['x', 'y', 'z'][dim]
+        peaksy, propertiesy = find_peaks(corry, prominence=prominence, distance=distance, height=0)
+        lastpeaky = peaksy[-1]
+        onehity = propertiesy['peak_heights'][0]
+        deviatey = np.std(corry[:lastpeaky]) / lastpeaky
+        peak1y = peaksy[np.argsort(propertiesy['peak_heights'])[-1]] / len(corry) #get top peak's time lag
+        peak2y = peaksy[np.argsort(propertiesy['peak_heights'])[-2]] / len(corry) #get 2nd peak's time lag
+        prom1y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-1]] #get top peak's prominence
+        prom2y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-2]] #get 2nd peak's prominence
+        
+        peaksxz, propertiesxz = find_peaks(corrxz, prominence=prominence, distance=distance, height=0)
+        lastpeakxz = peaksxz[-1]
+        onehitxz = propertiesxz['peak_heights'][0]
+        deviatexz = np.std(corrxz[:lastpeakxz]) / lastpeakxz
+        peak1xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-1]] / len(corrxz) #get top peak's time lag
+        peak2xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-2]] / len(corrxz) #get 2nd peak's time lag
+        prom1xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-1]] #get top peak's prominence
+        prom2xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-2]] #get 2nd peak's prominence
 
-        self.features['corr_prominence1_{}_{}'.format(label, dimlabel)] = prom1
-        self.features['corr_peak1_{}_{}'.format(label, dimlabel)] = peak1
-        self.features['corr_onehit_{}_{}'.format(label, dimlabel)] = onehit
-       
-
+        self.features['lastpeak_y{}'.format(label)] = lastpeaky
+        self.features['lastpeak_xz{}'.format(label)] = lastpeakxz
+        self.features['peak1_y{}'.format(label)] = peak1y
+        self.features['prominence1_y{}'.format(label)] = prom1y
+        
         if sparse==False:
             try:
-                peak3 = peaks[np.argsort(properties['peak_heights'])[-3]] / len(x) #get 3rd peak's time lag
+                peak3y = peaksy[np.argsort(propertiesy['peak_heights'])[-3]] / len(corry) #get 3rd peak's time lag
             except IndexError:
-                peak3 = 0
+                peak3y = 0
             try:
-                prom3 = properties['prominences'][np.argsort(properties['peak_heights'])[-3]] #get 3rd peak's prominence
+                prom3y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-3]] #get 3rd peak's prominence
             except IndexError:
-                prom3 = 0
+                prom3y = 0
+            try:
+                peak3xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-3]] / len(corrxz) #get 3rd peak's time lag
+            except IndexError:
+                peak3xz = 0
+            try:
+                prom3xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-3]] #get 3rd peak's prominence
+            except IndexError:
+                prom3xz = 0
 
-            self.features['corr_peak2_{}_{}'.format(label, dimlabel)] = peak2
-            self.features['corr_peak3_{}_{}'.format(label, dimlabel)] = peak3
-            self.features['corr_prominence2_{}_{}'.format(label, dimlabel)] = prom2
-            self.features['corr_prominence3_{}_{}'.format(label, dimlabel)] = prom3
-            self.features['corr_deviate_{}_{}'.format(label, dimlabel)] = deviate
+            self.features['onehit_y{}'.format(label)] = onehity
+            self.features['onehit_xz{}'.format(label)] = onehitxz
+            self.features['deviate_xz{}'.format(label)] = deviatexz
+            self.features['deviate_y{}'.format(label)] = deviatey
+            self.features['peak2_y{}'.format(label)] = peak2y
+            self.features['prominence2_y{}'.format(label)] = prom2y
+            self.features['peak3_y{}'.format(label)] = peak3y
+            self.features['prominence3_y{}'.format(label)] = prom3y
+            self.features['peak1_xz{}'.format(label)] = peak1xz
+            self.features['prominence1_xz{}'.format(label)] = prom1xz
+            self.features['peak2_xz{}'.format(label)] = peak2xz
+            self.features['prominence2_xz{}'.format(label)] = prom2xz
+            self.features['peak3_xz{}'.format(label)] = peak3xz
+            self.features['prominence3_xz{}'.format(label)] = prom3xz
+            
+        if sparse==True:
+            corrx = (np.correlate(moves1[0], moves1[0], mode='full') + np.correlate(moves2[0], moves2[0], mode='full')) / 2
+            corrx = corrx[corrx.size//2:] #take only positive lags
+            corrx = corrx / corrx[0] #normalize
 
+            peaksx, propertiesx = find_peaks(corrx, prominence=prominence, distance=distance, height=0)
+            lastpeakx = peaksx[-1]
+            onehitx = propertiesx['peak_heights'][0]
+            deviatex = np.std(corrx[:lastpeakx]) / lastpeakx
+            peak1x = peaksx[np.argsort(propertiesx['peak_heights'])[-1]] / len(x) #get top peak's time lag
+            prom1x = propertiesx['prominences'][np.argsort(propertiesx['peak_heights'])[-1]] #get top peak's prominence
+
+            self.features['lastpeak_x{}'.format(label)] = lastpeakx
+            self.features['onehit_x{}'.format(label)] = onehitx
+            self.features['deviate_x{}'.format(label)] = deviatex
+            self.features['peak1_x{}'.format(label)] = peak1x
+            self.features['prominence1_x{}'.format(label)] = prom1x
 
             
 
@@ -366,31 +411,27 @@ class Dance:
         
         if sparse==True:
             for dim in range(2):
-                self.get_joint_corr(nose, nose, 'nose', dim)
-                self.get_joint_corr(Rwrist, Lwrist, 'wrists', dim)
-                self.get_joint_corr(Rwrist, Lknee, 'RwristLknee', dim)
-                self.get_joint_corr(Rshoulder, Lhip, 'RshoLhip', dim)
-                self.get_joint_corr(Rankle, Rankle, 'Rankle', dim)
+                self.get_joint_corr(nose, nose, 'nose')
+                self.get_joint_corr(Rwrist, Lwrist, 'wrists')
+                self.get_joint_corr(Rshoulder, Lknee, 'contralatRsLk')
+                self.get_joint_corr(Rankle, Lankle, 'ankles')
 
         
         if sparse==False:
             for dim in range(3):
-                self.get_joint_corr(nose, nose, 'nose', dim)
-                self.get_joint_corr(Rwrist, Lwrist, 'wrists', dim)
-                self.get_joint_corr(Rwrist, Lknee, 'RwristLknee', dim)
-                self.get_joint_corr(Rshoulder, Lhip, 'RshoLhip', dim)
-                self.get_joint_corr(Rankle, Rankle, 'Rankle', dim)
-                self.get_joint_corr(Lankle, Lankle, 'Lankle', dim)
-                self.get_joint_corr(sacrum, sacrum, 'sacrum', dim)
-                self.get_joint_corr(Rshoulder, Lhip, 'RshoLhip', dim)
-                self.get_joint_corr(Lshoulder, Rhip, 'LshoRhip', dim)
-                self.get_joint_corr(Lshoulder, Rankle, 'LshoRankl', dim)
-                self.get_joint_corr(Rwrist, Lknee, 'RwristLknee', dim)
-                self.get_joint_corr(Lwrist, Rhip, 'LwristRhip', dim)
-                self.get_joint_corr(Rwrist, Rankle, 'RwristRankle', dim)
-                self.get_joint_corr(Rshoulder, Lankle, 'RshoLankl', dim)
-                self.get_joint_corr(nose, Lhip, 'noseLhip', dim)
-                self.get_joint_corr(nose, Rankle, 'noseRankle', dim)
+                self.get_joint_corr(nose, nose, 'nose')
+                self.get_joint_corr(Rwrist, Rwrist, 'Rwrist')
+                self.get_joint_corr(Lwrist, Lwrist, 'Lwrist')
+                self.get_joint_corr(Rankle, Rankle, 'Rankle')
+                self.get_joint_corr(Lankle, Lankle, 'Lankle')
+                self.get_joint_corr(sacrum, sacrum, 'sacrum')
+                self.get_joint_corr(Rshoulder, Lknee, 'contralatRsLk')
+                self.get_joint_corr(Lshoulder, Rknee, 'contralatLsRk')
+                self.get_joint_corr(Relbow, Relbow, 'Relbow')
+                self.get_joint_corr(Lelbow, Lelbow, 'Lelbow')
+                self.get_joint_corr(Rknee, Lknee, 'knees')
+                self.get_joint_corr(Rwrist, Rankle, 'RwristRankle')
+                self.get_joint_corr(Lwrist, Lankle, 'LwristLankle')
 
                  
             
