@@ -91,75 +91,103 @@ class Dance:
         
         self.sacrum = [sacrumpos, sacrumvel, sacrumacc, sacrumjer] 
         
-    def get_expandedness(self):   #expandedness ~ distance of joints from sacrum
+    def get_expandedness(self, sparse=False):   #expandedness ~ distance of joints from sacrum
         
         self.get_sacrum()
+        
         Dsfromsacrum = np.empty_like(self.pos)  #inits for diff in pos, vel, and accel from sacrum
-        Vsfromsacrum = np.empty_like(self.pos)  
-        Asfromsacrum = np.empty_like(self.pos)  
-        Jsfromsacrum = np.empty_like(self.pos)
+        Vsfromsacrum = np.empty_like(self.velocity)  
+        Asfromsacrum = np.empty_like(self.acceleration)  
+        Jsfromsacrum = np.empty_like(self.jerk)
                 
         for j in range(self.numjoints):                         #DISTANCE of each joint from sacrum                                    
             Dsfromsacrum[j] = np.abs((self.pos[j] - self.sacrum[0]))
         
         expa = Dsfromsacrum.sum(axis=0)                         #sum over joints to get expandedness per frame per dimension
         expa = expa.sum(axis=1)                                 #sum over dimensions to get expandedness over frames
-        maxexpa = expa.max()                                    #max expandedness over frames
-        minexpa = expa.min()                                    #min expandedness over frames
-        meanexpa = expa.sum()/self.numframes                    #mean expandedness over frames
-        stdexpa = expa.std()                                    #std of expandedness over frames
         
         for j in range(self.numjoints):                         #diff in VELOCITY of each joint from sacrum, same as above
             Vsfromsacrum[j] = np.abs((self.velocity[j] - self.sacrum[1]))
         
         expavel = Vsfromsacrum.sum(axis=0)                      
         expavel = expavel.sum(axis=1)                           
-        maxexpavel = expavel.max()
-        minexpavel = expavel.min()
-        meanexpavel = expavel.sum()/self.numframes          
-        stdexpavel = expavel.std()
 
         for j in range(self.numjoints):                         #diff in ACCELERATION of each joint from sacrum, same as above      
             Asfromsacrum[j] = np.abs((self.acceleration[j] - self.sacrum[2]))
 
         expaacc = Asfromsacrum.sum(axis=0)                      
-        expaacc = expaacc.sum(axis=1)                           
-        maxexpaacc = expaacc.max()
-        minexpaacc = expaacc.min()                          
-        meanexpaacc = expaacc.sum()/self.numframes
-        stdexpaacc = expaacc.std()      
+        expaacc = expaacc.sum(axis=1)                                 
 
         for j in range(self.numjoints):                         #diff in JERK of each joint from sacrum, same as above      
             Jsfromsacrum[j] = np.abs((self.jerk[j] - self.sacrum[3]))   
 
         expajer = Jsfromsacrum.sum(axis=0)                      
         expajer = expajer.sum(axis=1)
-        maxexpajer = expajer.max()
-        minexpajer = expajer.min()                           
-        meanexpajer = expajer.sum()/self.numframes
-        stdexpajer = expajer.std()
+
+        self.features['Expandedness'] = expa.sum()/self.numframes
+
+        #calculate footdistance
+        Lankle = self.pos[13]  #left ankle
+        Rankle = self.pos[14]  #right ankle
+        footspace = np.abs(Lankle - Rankle).mean(axis=1)
+        Lanklex = Lankle[:,0]
+        Ranklex = Rankle[:,0]
+        Lankley = Lankle[:,1]
+        Rankley = Rankle[:,1]
+        Lanklez = Lankle[:,2]
+        Ranklez = Rankle[:,2]
+        footspacex = np.abs(Lanklex - Ranklex)
+
+
+        #calculate handdistance
+        Lwrist = self.pos[7]  #left wrist
+        Rwrist = self.pos[8]  #right wrist
+        handspace = np.abs(Lwrist - Rwrist).mean(axis=1)
+        Lwristx = Lwrist[:,0]
+        Rwristx = Rwrist[:,0]
+        Lwristy = Lwrist[:,1]
+        Rwristy = Rwrist[:,1]
+        Lwristz = Lwrist[:,2]
+        Rwristz = Rwrist[:,2]
+        handspacex = np.abs(Lwristx - Rwristx)
+
+        #rate of change of footspace and handspace
+        footspacevel = (footspace[1:] - footspace[:-1]) / self.dt
+        #savgol filter
+        footspacevel = savgol_filter(footspacevel, window_length=45, polyorder=2, mode='nearest')
+        #acceleration
+        footspaceacc = (footspacevel[1:] - footspacevel[:-1]) / self.dt
+
+        handspacevel = (handspace[1:] - handspace[:-1]) / self.dt
+        handspacevel = savgol_filter(handspacevel, window_length=45, polyorder=2, mode='nearest')
+        handspaceacc = (handspacevel[1:] - handspacevel[:-1]) / self.dt
         
-        self.features['Expandedness'] = meanexpa
-        self.features['Expandedness_max'] = maxexpa
-        self.features['Expandedness_min'] = minexpa
-        self.features['Expandedness_std'] = stdexpa
-        self.features['Expandednessvel'] = meanexpavel
-        self.features['Expandednessvel_max'] = maxexpavel
-        self.features['Expandednessvel_min'] = minexpavel
-        self.features['Expandednessvel_std'] = stdexpavel
-        self.features['Expandednessacc'] = meanexpaacc
-        self.features['Expandednessacc_max'] = maxexpaacc
-        self.features['Expandednessacc_min'] = minexpaacc
-        self.features['Expandednessacc_std'] = stdexpaacc
-        self.features['Expandednessjer'] = meanexpajer
-        self.features['Expandednessjer_max'] = maxexpajer
-        self.features['Expandednessjer_min'] = minexpajer
-        self.features['Expandednessjer_std'] = stdexpajer
+        
+        #
+        #fix footspace?
+        self.features['FootspaceX'] = footspacex.mean()
+        self.features['HandspaceX'] = handspacex.mean()
+        
+        if sparse==False:
+            self.features['Expandednessvel_range'] = expavel.max() - expavel.min()
+            self.features['Expandednessvel'] = expavel.sum()/self.numframes
+            self.features['Expandednessacc'] = expaacc.sum()/self.numframes
+            self.features['Expandednessjer'] = expajer.sum()/self.numframes
+            self.features['Expandednessacc_range'] = expaacc.max() - expaacc.min()
+            self.features['Expandednessjer'] = expajer.sum()/self.numframes
+            self.features['Expandednessjer_range'] = expajer.max() - expajer.min()
+    
+            self.features['Footspace_range'] = footspace.max() - footspace.min()
+            self.features['Handspace_range'] = handspace.max() - handspace.min()
+            self.features['Footspaceacc'] = footspaceacc.mean()
+            self.features['Handspaceacc'] = handspaceacc.mean()
+
         
               
     def get_asymmetries(self, Ridxs=[4,6,8,10,12,14], Lidxs=[3,5,7,9,11,13], 
         Inidxs=[3, 4, 9, 10], Outidxs=[7, 8, 13, 14],                          #asymmetries ~ difference in joint positions
-        Topidxs=[3, 4, 5, 6, 7, 8], Botidxs=[9, 10, 11, 12, 13, 14]):           #default values for aist++ dataset
+        Topidxs=[3, 4, 5, 6, 7, 8], Botidxs=[9, 10, 11, 12, 13, 14],
+        sparse=False):           #default values for aist++ dataset
                         
                                                                                              
         Rvel, Lvel, Racc, Lacc, Rjer, Ljer = [np.zeros(self.numframes) for i in range(6)]
@@ -178,9 +206,11 @@ class Dance:
         accelratioRL = Racc / Lacc
         jerkratioRL = Rjer / Ljer
               
-        self.features['Asym_RL_vel'] = np.sum(velratioRL)  
         self.features['Asym_RL_acc'] = np.sum(accelratioRL) 
-        self.features['Asym_RL_jer'] = np.sum(jerkratioRL) 
+
+        if sparse==False:
+            self.features['Asym_RL_jer'] = np.sum(jerkratioRL) 
+            self.features['Asym_RL_vel'] = np.sum(velratioRL)
         
         velratiomoments = np.split(velratioRL, self.moments)             #split each div by moment = 15frames = 1/4sec
         accelratiomoments = np.split(accelratioRL, self.moments)
@@ -195,9 +225,10 @@ class Dance:
             accelmeans[m] = np.mean(accelratiomoments[m])
             jerkmeans[m] = np.mean(jerkratiomoments[m])
             
-        self.features['Asym_RL_vel_std'] = np.std(velmeans)
-        self.features['Asym_RL_acc_std'] = np.std(accelmeans)
-        self.features['Asym_RL_jer_std'] = np.std(jerkmeans)
+        if sparse==False:
+            self.features['Asym_RL_acc_std'] = np.std(accelmeans)
+            self.features['Asym_RL_jer_std'] = np.std(jerkmeans)
+            self.features['Asym_RL_vel_std'] = np.std(velmeans)
         
         #repeat above for inside vs outside asymmetry 
     
@@ -216,10 +247,12 @@ class Dance:
         velratioIO = Invel / Outvel
         accelratioIO = Inacc / Outacc
         jerkratioIO = Injer / Outjer
-              
-        self.features['Asym_IO_vel'] = np.sum(velratioIO)   
+           
         self.features['Asym_IO_acc'] = np.sum(accelratioIO) 
-        self.features['Asym_IO_jer'] = np.sum(jerkratioIO) 
+
+        if sparse==False:
+            self.features['Asym_IO_jer'] = np.sum(jerkratioIO) 
+            self.features['Asym_IO_vel'] = np.sum(velratioIO)
         
         velratiomoments = np.split(velratioIO, self.moments)             
         accelratiomoments = np.split(accelratioIO, self.moments)
@@ -233,10 +266,12 @@ class Dance:
             velmeans[m] = np.mean(velratiomoments[m])
             accelmeans[m] = np.mean(accelratiomoments[m])
             jerkmeans[m] = np.mean(jerkratiomoments[m])
-            
-        self.features['Asym_IO_vel_std'] = np.std(velmeans)
-        self.features['Asym_IO_acc_std'] = np.std(accelmeans)
-        self.features['Asym_IO_jer_std'] = np.std(jerkmeans)
+        
+
+        if sparse==False:
+            self.features['Asym_IO_acc_std'] = np.std(accelmeans)
+            self.features['Asym_IO_jer_std'] = np.std(jerkmeans)
+            self.features['Asym_IO_vel_std'] = np.std(velmeans)
         
         #repeat above for top vs bottom asymmetry
         
@@ -257,9 +292,11 @@ class Dance:
         accelratioTB = Topacc / Botacc
         jerkratioTB = Topjer / Botjer
               
-        self.features['Asym_TB_vel'] = np.sum(velratioTB)   
         self.features['Asym_TB_acc'] = np.sum(accelratioTB) 
-        self.features['Asym_TB_jer'] = np.sum(jerkratioTB) 
+
+        if sparse==False:
+            self.features['Asym_TB_jer'] = np.sum(jerkratioTB) 
+            self.features['Asym_TB_vel'] = np.sum(velratioTB)
         
         velratiomoments = np.split(velratioTB, self.moments)             
         accelratiomoments = np.split(accelratioTB, self.moments)
@@ -273,412 +310,163 @@ class Dance:
             velmeans[m] = np.mean(velratiomoments[m])
             accelmeans[m] = np.mean(accelratiomoments[m])
             jerkmeans[m] = np.mean(jerkratiomoments[m])
-            
-        self.features['Asym_TB_vel_std'] = np.std(velmeans)
-        self.features['Asym_TB_acc_std'] = np.std(accelmeans)
-        self.features['Asym_TB_jer_std'] = np.std(jerkmeans) 
 
-    def get_autocorr_features(self, npeaks=2):
+        if sparse==False:
+            self.features['Asym_TB_acc_std'] = np.std(accelmeans)
+            self.features['Asym_TB_jer_std'] = np.std(jerkmeans) 
+            self.features['Asym_TB_vel_std'] = np.std(velmeans)
+
+    def get_joint_corr(self, jointaccel1, jointaccel2, label, prominence=.0001, distance=30, sparse=False):
         
+        #will look at vertical and horizontal dimensions separately
+        #get correlation of acceleration between two joints in a given dimension
+
+        moves1 = [jointaccel1.T[i] for i in range(3)] #list of acceleration data for each joint in each dimension
+        moves2 = [jointaccel2.T[i] for i in range(3)]
+        
+        corry = (np.correlate(moves1[1], moves1[1], mode='full') + np.correlate(moves2[1], moves2[1], mode='full')) / 2
+        corry = corry[corry.size//2:] #take only positive lags
+        corry = corry / corry[0] #normalize
+        corrxz = (np.correlate(moves1[0], moves1[0], mode='full') + np.correlate(moves2[0], moves2[0], mode='full') +
+                np.correlate(moves1[2], moves1[2], mode='full') + np.correlate(moves2[2], moves2[2], mode='full')) / 2
+        corrxz = corrxz[corrxz.size//2:] #take only positive lags
+        corrxz = corrxz / corrxz[0] #normalize
+
+        peaksy, propertiesy = find_peaks(corry, prominence=prominence, distance=distance, height=0)
+        lastpeaky = peaksy[-1]/len(corry) #get last peak's time lag
+        onehity = propertiesy['peak_heights'][0]
+        deviatey = np.std(corry[:peaksy[-1]]) / peaksy[-1]
+        peak1y = peaksy[np.argsort(propertiesy['peak_heights'])[-1]] / len(corry) #get top peak's time lag
+        peak2y = peaksy[np.argsort(propertiesy['peak_heights'])[-2]] / len(corry) #get 2nd peak's time lag
+        prom1y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-1]] #get top peak's prominence
+        prom2y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-2]] #get 2nd peak's prominence
+        
+        peaksxz, propertiesxz = find_peaks(corrxz, prominence=prominence, distance=distance, height=0)
+        lastpeakxz = peaksxz[-1]/len(corrxz) #get last peak's time lag
+        onehitxz = propertiesxz['peak_heights'][0]
+        deviatexz = np.std(corrxz[:peaksxz[-1]]) / peaksxz[-1]
+        peak1xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-1]] / len(corrxz) #get top peak's time lag
+        peak2xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-2]] / len(corrxz) #get 2nd peak's time lag
+        prom1xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-1]] #get top peak's prominence
+        prom2xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-2]] #get 2nd peak's prominence
+
+        self.features['lastpeak_y{}'.format(label)] = lastpeaky
+        self.features['prominence1_y{}'.format(label)] = prom1y
+        
+        if sparse==False:
+            try:
+                peak3y = peaksy[np.argsort(propertiesy['peak_heights'])[-3]] / len(corry) #get 3rd peak's time lag
+            except IndexError:
+                peak3y = 0
+            try:
+                prom3y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-3]] #get 3rd peak's prominence
+            except IndexError:
+                prom3y = 0
+            try:
+                peak3xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-3]] / len(corrxz) #get 3rd peak's time lag
+            except IndexError:
+                peak3xz = 0
+            try:
+                prom3xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-3]] #get 3rd peak's prominence
+            except IndexError:
+                prom3xz = 0
+
+            self.features['peak1_y{}'.format(label)] = peak1y
+            self.features['lastpeak_xz{}'.format(label)] = lastpeakxz
+            self.features['onehit_y{}'.format(label)] = onehity
+            self.features['onehit_xz{}'.format(label)] = onehitxz
+            self.features['deviate_xz{}'.format(label)] = deviatexz
+            self.features['deviate_y{}'.format(label)] = deviatey
+            self.features['peak2_y{}'.format(label)] = peak2y
+            self.features['prominence2_y{}'.format(label)] = prom2y
+            self.features['peak3_y{}'.format(label)] = peak3y
+            self.features['prominence3_y{}'.format(label)] = prom3y
+            self.features['peak1_xz{}'.format(label)] = peak1xz
+            self.features['prominence1_xz{}'.format(label)] = prom1xz
+            self.features['peak2_xz{}'.format(label)] = peak2xz
+            self.features['prominence2_xz{}'.format(label)] = prom2xz
+            self.features['peak3_xz{}'.format(label)] = peak3xz
+            self.features['prominence3_xz{}'.format(label)] = prom3xz
+            
+        #this is really for 2d data, below
+        # if sparse==True:
+        #     corrx = (np.correlate(moves1[0], moves1[0], mode='full') + np.correlate(moves2[0], moves2[0], mode='full')) / 2
+        #     corrx = corrx[corrx.size//2:] #take only positive lags
+        #     corrx = corrx / corrx[0] #normalize
+
+        #     peaksx, propertiesx = find_peaks(corrx, prominence=prominence, distance=distance, height=0)
+        #     lastpeakx = peaksx[-1]
+        #     onehitx = propertiesx['peak_heights'][0]
+        #     deviatex = np.std(corrx[:lastpeakx]) / lastpeakx
+        #     peak1x = peaksx[np.argsort(propertiesx['peak_heights'])[-1]] / len(x) #get top peak's time lag
+        #     prom1x = propertiesx['prominences'][np.argsort(propertiesx['peak_heights'])[-1]] #get top peak's prominence
+
+        #     self.features['lastpeak_x{}'.format(label)] = lastpeakx
+        #     self.features['onehit_x{}'.format(label)] = onehitx
+        #     self.features['deviate_x{}'.format(label)] = deviatex
+        #     self.features['peak1_x{}'.format(label)] = peak1x
+        #     self.features['prominence1_x{}'.format(label)] = prom1x
+
+            
+
+    def get_joint_corr_features(self, sparse):
+
+        #setting joint accelerations to variables for get_joint_corr
         self.get_sacrum()
+        nose = self.acceleration[0]
+        Lshoulder = self.acceleration[3]
+        Rshoulder = self.acceleration[4]
+        Lelbow = self.acceleration[5]
+        Relbow = self.acceleration[6]
+        Lwrist = self.acceleration[7]
+        Rwrist = self.acceleration[8]
+        Lhip = self.acceleration[9]
+        Rhip = self.acceleration[10]
+        Lknee = self.acceleration[11]
+        Rknee = self.acceleration[12]
+        Lankle = self.acceleration[13]
+        Rankle = self.acceleration[14]
+        sacrum = self.sacrum[2]
         
-        #acceleration autocorrelation features    
-        #autocorr features for sacrum in horizontal plane
-        sacrum_axz_corr = np.correlate(self.sacrum[2][:,0], self.sacrum[2][:,0], mode='full') + np.correlate(self.sacrum[2][:,2], self.sacrum[2][:,2], mode='full')
-        peaks_axz = find_peaks(sacrum_axz_corr, height=0, prominence=1e-4)
-        start = len(peaks_axz[0])//2
-        heights_axz = peaks_axz[1]['peak_heights'][start:]
-        prominences_axz = peaks_axz[1]['prominences'][start:]    
+        joints = [nose, Lshoulder, Rshoulder, Lelbow, Relbow, Lwrist, Rwrist, Lhip, Rhip, Lknee, Rknee, Lankle, Rankle, sacrum]
+
         
-        self.features['Autocorr_sac_height_axz'] = heights_axz[0]
+        if sparse==True:
+            self.get_joint_corr(Rwrist, Lwrist, 'wrists')
+            self.get_joint_corr(Rshoulder, Lknee, 'contralatRsLk')
+            self.get_joint_corr(Rankle, Lankle, 'ankles')
+
         
-        top_prom_axz = []
-        shortestpeak_axz = np.sort(heights_axz)[::-1][npeaks]
-        for h in range(len(heights_axz)):
-            if heights_axz[h] >= shortestpeak_axz:
-                top_prom_axz.append(prominences_axz[h])
-                
-        self.features['Autocorr_sac_prominence1_axz'] = np.sort(top_prom_axz)[::-1][0]
-        self.features['Autocorr_sac_prominence2_axz'] = np.sort(top_prom_axz)[::-1][1]
-        self.features['Autocorr_sac_prominence3_axz'] = np.sort(top_prom_axz)[::-1][2]
-        #self.features['Autocorr_sac_prominence4_axz'] = np.sort(top_prom_axz)[::-1][3]
-        self.features['Autocorr_sac_prominence_axz_std'] = np.std(np.sort(top_prom_axz)[::-1])
+        if sparse==False:
+            self.get_joint_corr(nose, nose, 'nose')
+            self.get_joint_corr(Rwrist, Rwrist, 'Rwrist')
+            self.get_joint_corr(Lankle, Lankle, 'Lankle')
+            self.get_joint_corr(Rankle, Rankle, 'Rankle')
+            self.get_joint_corr(sacrum, sacrum, 'sacrum')
+            self.get_joint_corr(Rshoulder, Lknee, 'contralatRsLk')
+            self.get_joint_corr(Lshoulder, Rknee, 'contralatLsRk')
+            self.get_joint_corr(Relbow, Relbow, 'Relbow')
+            self.get_joint_corr(Lwrist, Lwrist, 'Lwrist')
+            self.get_joint_corr(Lelbow, Lelbow, 'Lelbow')
+            self.get_joint_corr(Rknee, Lknee, 'knees')
+            self.get_joint_corr(Rwrist, Rankle, 'RwristRankle')
+            self.get_joint_corr(Lwrist, Lankle, 'LwristLankle')
+            self.get_joint_corr(sacrum, nose, 'sacrumnose')
 
-        #autocorr features for sacrum in up/down direction
-        sacrum_ay_corr = np.correlate(self.sacrum[2][:,1], self.sacrum[2][:,1], mode='full')    
-        peaks_ay = find_peaks(sacrum_ay_corr, height=0, prominence=1e-4)                   #find peaks in autocorrelation
-        start = len(peaks_ay[0])//2                                                #find peak closest to zero lag
-        heights_ay = peaks_ay[1]['peak_heights'][start:]                 #get heights of peaks
-        prominences_ay = peaks_ay[1]['prominences'][start:]         #get prominences of peaks
-                                      
-        self.features['Autocorr_sac_height_ay'] = heights_ay[0]     #first peak height
-        
-        top_prom_ay = []                                    #prominences of top n peaks
-        shortestpeak_ay = np.sort(heights_ay)[::-1][npeaks]    #height of nth tallest peak = shortest we care about
-        for h in range(len(heights_ay)):            
-            if heights_ay[h] >= shortestpeak_ay:
-                top_prom_ay.append(prominences_ay[h])       #loop through peaks and get prominences of top n peaks 
-                
-        self.features['Autocorr_sac_prominence1_ay'] = np.sort(top_prom_ay)[::-1][0]
-        self.features['Autocorr_sac_prominence2_ay'] = np.sort(top_prom_ay)[::-1][1]
-        self.features['Autocorr_sac_prominence3_ay'] = np.sort(top_prom_ay)[::-1][2]
-        #self.features['Autocorr_sac_prominence4_ay'] = np.sort(top_prom_ay)[::-1][3]
-        self.features['Autocorr_sac_prominence_ay_std'] = np.std(np.sort(top_prom_ay)[::-1])       #variance of prominences of top n peaks
-   
-        #autocorr of combined wrists [7,8], combined ankles [13,14], per dimension 
-
-        wristcorrx = (np.correlate(self.acceleration[7][:,0], self.acceleration[7][:,0], mode='full') + 
-             np.correlate(self.acceleration[8][:,0], self.acceleration[8][:,0], mode='full')) / 2
-
-        wristcorrz = (np.correlate(self.acceleration[7][:,2], self.acceleration[7][:,2], mode='full') + 
-             np.correlate(self.acceleration[8][:,2], self.acceleration[8][:,2], mode='full')) / 2
-
-        anklecorrx = (np.correlate(self.acceleration[13][:,0], self.acceleration[13][:,0], mode='full') + 
-             np.correlate(self.acceleration[14][:,0], self.acceleration[14][:,0], mode='full')) / 2
-
-        anklecorrz = (np.correlate(self.acceleration[13][:,2], self.acceleration[13][:,2], mode='full') + 
-             np.correlate(self.acceleration[14][:,2], self.acceleration[14][:,2], mode='full')) / 2
-
-        wristcorry = (np.correlate(self.acceleration[7][:,1], self.acceleration[7][:,1], mode='full') + 
-             np.correlate(self.acceleration[8][:,1], self.acceleration[8][:,1], mode='full')) / 2
-
-        anklecorry = (np.correlate(self.acceleration[13][:,1], self.acceleration[13][:,1], mode='full') + 
-             np.correlate(self.acceleration[14][:,1], self.acceleration[14][:,1], mode='full')) / 2
+                 
             
-        #autocorr features for wrists in horizontal plane
-        
-        peaks_wristsxz = find_peaks(wristcorrx + wristcorrz, height=0, prominence=1e-4)
-        start = len(peaks_wristsxz[0])//2
-        heights_wristsxz = peaks_wristsxz[1]['peak_heights'][start:]
-        prominences_wristsxz = peaks_wristsxz[1]['prominences'][start:]    
-                                      
-        self.features['Autocorr_wrists_height_axz'] = heights_wristsxz[0]
-        
-        top_prom_wristsxz = []
-        shortestpeak_wristsxz = np.sort(heights_wristsxz)[::-1][npeaks]
-        for h in range(len(heights_wristsxz)):
-            if heights_wristsxz[h] >= shortestpeak_wristsxz:
-                top_prom_wristsxz.append(prominences_wristsxz[h])
-                
-        self.features['Autocorr_wrists_prominence1_axz'] = np.sort(top_prom_wristsxz)[::-1][0]
-        self.features['Autocorr_wrists_prominence2_axz'] = np.sort(top_prom_wristsxz)[::-1][1]
-        self.features['Autocorr_wrists_prominence3_axz'] = np.sort(top_prom_wristsxz)[::-1][2]
-        #self.features['Autocorr_wrists_prominence4'] = np.sort(top_prom_wristsxz)[::-1][3]
-        self.features['Autocorr_wrists_prominence_axz_std'] = np.std(np.sort(top_prom_wristsxz)[::-1])
 
-        #autocorr features for wrists in up/down direction
-
-        peaks_wristsy = find_peaks(wristcorry, height=0, prominence=1e-4)
-        start = len(peaks_wristsy[0])//2
-        heights_wristsy = peaks_wristsy[1]['peak_heights'][start:]
-        prominences_wristsy = peaks_wristsy[1]['prominences'][start:]   
-
-        self.features['Autocorr_wrists_height_ay'] = heights_wristsy[0]
-
-        top_prom_wristsy = []
-        shortestpeak_wristsy = np.sort(heights_wristsy)[::-1][npeaks]
-        for h in range(len(heights_wristsy)):
-            if heights_wristsy[h] >= shortestpeak_wristsy:
-                top_prom_wristsy.append(prominences_wristsy[h])
-
-        self.features['Autocorr_wrists_prominence1_ay'] = np.sort(top_prom_wristsy)[::-1][0]
-        self.features['Autocorr_wrists_prominence2_ay'] = np.sort(top_prom_wristsy)[::-1][1]
-        self.features['Autocorr_wrists_prominence3_ay'] = np.sort(top_prom_wristsy)[::-1][2]
-        #self.features['Autocorr_wrists_prominence4'] = np.sort(top_prom_wristsy)[::-1][3]
-        self.features['Autocorr_wrists_prominence_ay_std'] = np.std(np.sort(top_prom_wristsy)[::-1])
-
-        #autocorr features for ankles in horizontal plane
-
-        peaks_anklxz = find_peaks(anklecorrx + anklecorrz, height=0, prominence=1e-4)
-        start = len(peaks_anklxz[0])//2
-        heights_anklxz = peaks_anklxz[1]['peak_heights'][start:]  
-        prominences_anklxz = peaks_anklxz[1]['prominences'][start:] 
-                                      
-        self.features['Autocorr_ankles_height_axz'] = heights_anklxz[0]
-        
-        top_prom_anklxz = []
-        shortestpeak_anklxz = np.sort(heights_anklxz)[::-1][npeaks]
-        for h in range(len(heights_anklxz)):
-            if heights_anklxz[h] >= shortestpeak_anklxz:
-                top_prom_anklxz.append(prominences_anklxz[h])
-                
-        self.features['Autocorr_ankle_prominence1_axz'] = np.sort(top_prom_anklxz)[::-1][0] 
-        self.features['Autocorr_ankle_prominence2_axz'] = np.sort(top_prom_anklxz)[::-1][1]
-        self.features['Autocorr_ankle_prominence3_axz'] = np.sort(top_prom_anklxz)[::-1][2]
-        #self.features['Autocorr_ankle_prominence4'] = np.sort(top_prom_anklxz)[::-1][3]
-        self.features['Autocorr_ankles_prominence_axz_std'] = np.std(np.sort(top_prom_anklxz)[::-1])
-
-        #autocorr features for ankles in up/down direction
-
-        peaks_ankly = find_peaks(anklecorry, height=0, prominence=1e-4)
-        start = len(peaks_ankly[0])//2
-        heights_ankly = peaks_ankly[1]['peak_heights'][start:]
-        prominences_ankly = peaks_ankly[1]['prominences'][start:]    
-
-        self.features['Autocorr_ankles_height_ay'] = heights_ankly[0]
-
-        top_prom_ankly = []
-        shortestpeak_ankly = np.sort(heights_ankly)[::-1][npeaks]
-        for h in range(len(heights_ankly)):
-            if heights_ankly[h] >= shortestpeak_ankly:
-                top_prom_ankly.append(prominences_ankly[h])
-
-        self.features['Autocorr_ankles_prominence1_ay'] = np.sort(top_prom_ankly)[::-1][0]
-        self.features['Autocorr_ankles_prominence2_ay'] = np.sort(top_prom_ankly)[::-1][1]
-        self.features['Autocorr_ankles_prominence3_ay'] = np.sort(top_prom_ankly)[::-1][2]
-        #self.features['Autocorr_ankles_prominence4'] = np.sort(top_prom_ankly)[::-1][3]
-        self.features['Autocorr_ankles_prominence_ay_std'] = np.std(np.sort(top_prom_ankly)[::-1])
-
-        #corr for contralateral elbows and knees
-
-        ReLk_contracorr = (np.correlate(self.acceleration[6][:,0], self.acceleration[11][:,0], mode='full') +
-                                    np.correlate(self.acceleration[6][:,1], self.acceleration[11][:,1], mode='full') +
-                                    np.correlate(self.acceleration[6][:,2], self.acceleration[11][:,2], mode='full'))/3
-
-        peaks_contracorr_ReLk = find_peaks(ReLk_contracorr, height=0, prominence=1e-4)
-        start = len(peaks_contracorr_ReLk[0])//2
-        heights_contracorr_ReLk = peaks_contracorr_ReLk[1]['peak_heights'][start:]
-        prominences_contracorr_ReLk = peaks_contracorr_ReLk[1]['prominences'][start:]
-
-        self.features['Contracorr_ReLk_height_a'] = heights_contracorr_ReLk[0]
-
-        top_prom_contracorr_ReLk = []
-        shortestpeak_contracorr_ReLk = np.sort(heights_contracorr_ReLk)[::-1][npeaks]
-        for h in range(len(heights_contracorr_ReLk)):
-            if heights_contracorr_ReLk[h] >= shortestpeak_contracorr_ReLk:
-                top_prom_contracorr_ReLk.append(prominences_contracorr_ReLk[h])
-
-        self.features['Contracorr_ReLk_prominence1_a'] = np.sort(top_prom_contracorr_ReLk)[::-1][0]
-        self.features['Contracorr_ReLk_prominence2_a'] = np.sort(top_prom_contracorr_ReLk)[::-1][1]
-        self.features['Contracorr_ReLk_prominence3_a'] = np.sort(top_prom_contracorr_ReLk)[::-1][2]
-        #self.features['Contracorr_ReLk_prominence4'] = np.sort(top_prom_contracorr_ReLk)[::-1][3]
-        self.features['Contracorr_ReLk_prominence_a_std'] = np.std(np.sort(top_prom_contracorr_ReLk)[::-1])
-        
-        LeRk_contracorr = (np.correlate(self.acceleration[5][:,0], self.acceleration[12][:,0], mode='full') +
-                                    np.correlate(self.acceleration[5][:,1], self.acceleration[12][:,1], mode='full') +
-                                    np.correlate(self.acceleration[5][:,2], self.acceleration[12][:,2], mode='full'))/3 
-
-        peaks_contracorr_LeRk = find_peaks(LeRk_contracorr, height=0, prominence=1e-4)
-        start = len(peaks_contracorr_LeRk[0])//2
-        heights_contracorr_LeRk = peaks_contracorr_LeRk[1]['peak_heights'][start:]
-        prominences_contracorr_LeRk = peaks_contracorr_LeRk[1]['prominences'][start:]   
-
-        self.features['Contracorr_LeRk_height_a'] = heights_contracorr_LeRk[0]
-
-        top_prom_contracorr_LeRk = []
-        shortestpeak_contracorr_LeRk = np.sort(heights_contracorr_LeRk)[::-1][npeaks]
-        for h in range(len(heights_contracorr_LeRk)):
-            if heights_contracorr_LeRk[h] >= shortestpeak_contracorr_LeRk:
-                top_prom_contracorr_LeRk.append(prominences_contracorr_LeRk[h]) 
-
-        self.features['Contracorr_LeRk_prominence1_a'] = np.sort(top_prom_contracorr_LeRk)[::-1][0]
-        self.features['Contracorr_LeRk_prominence2_a'] = np.sort(top_prom_contracorr_LeRk)[::-1][1]
-        self.features['Contracorr_LeRk_prominence3_a'] = np.sort(top_prom_contracorr_LeRk)[::-1][2]
-        #self.features['Contracorr_LeRk_prominence4'] = np.sort(top_prom_contracorr_LeRk)[::-1][3]
-        self.features['Contracorr_LeRk_prominence_a_std'] = np.std(np.sort(top_prom_contracorr_LeRk)[::-1])
-
-        #jerk autocorrelation features
-        #autocorr features for sacrum in horizontal plane, jerk
-        sacrum_jxz_corr = np.correlate(self.sacrum[3][:,0], self.sacrum[3][:,0], mode='full') + np.correlate(self.sacrum[3][:,2], self.sacrum[3][:,2], mode='full')
-        peaks_jxz = find_peaks(sacrum_jxz_corr, height=0, prominence=1e-4)
-        start = len(peaks_jxz[0])//2
-        heights_jxz = peaks_jxz[1]['peak_heights'][start:]
-        prominences_jxz = peaks_jxz[1]['prominences'][start:]    
-        
-        self.features['Autocorr_sac_height_jxz'] = heights_jxz[0]
-        
-        top_prom_jxz = []
-        shortestpeak_jxz = np.sort(heights_jxz)[::-1][npeaks]
-        for h in range(len(heights_jxz)):
-            if heights_jxz[h] >= shortestpeak_jxz:
-                top_prom_jxz.append(prominences_jxz[h])
-                
-        self.features['Autocorr_sac_prominence1_jxz'] = np.sort(top_prom_jxz)[::-1][0]
-        self.features['Autocorr_sac_prominence2_jxz'] = np.sort(top_prom_jxz)[::-1][1]
-        self.features['Autocorr_sac_prominence3_jxz'] = np.sort(top_prom_jxz)[::-1][2]
-        #self.features['Autocorr_sac_prominence4_jxz'] = np.sort(top_prom_jxz)[::-1][3]
-        self.features['Autocorr_sac_prominences_jxz_var'] = np.var(np.sort(top_prom_jxz)[::-1])
-
-        #autocorr features for sacrum in up/down direction, jerk
-        sacrum_jy_corr = np.correlate(self.sacrum[3][:,1], self.sacrum[3][:,1], mode='full')    
-        peaks_jy = find_peaks(sacrum_jy_corr, height=0, prominence=1e-4)                   #find peaks in autocorrelation
-        start = len(peaks_jy[0])//2                                                #find peak closest to zero lag
-        heights_jy = peaks_jy[1]['peak_heights'][start:]                 #get heights of peaks
-        prominences_jy = peaks_jy[1]['prominences'][start:]         #get prominences of peaks
-                                      
-        self.features['Autocorr_sac_height_jy'] = heights_jy[0]     #first peak height
-        
-        top_prom_jy = []                                    #prominences of top n peaks
-        shortestpeak_jy = np.sort(heights_jy)[::-1][npeaks]    #height of nth tallest peak = shortest we care about
-        for h in range(len(heights_jy)):            
-            if heights_jy[h] >= shortestpeak_jy:
-                top_prom_jy.append(prominences_jy[h])       #loop through peaks and get prominences of top n peaks 
-                
-        self.features['Autocorr_sac_prominence1_jy'] = np.sort(top_prom_jy)[::-1][0]
-        self.features['Autocorr_sac_prominence2_jy'] = np.sort(top_prom_jy)[::-1][1]
-        self.features['Autocorr_sac_prominence3_jy'] = np.sort(top_prom_jy)[::-1][2]
-        #self.features['Autocorr_sac_prominence4_jy'] = np.sort(top_prom_jy)[::-1][3]
-        self.features['Autocorr_sac_prominences_jy_std'] = np.std(np.sort(top_prom_jy)[::-1])       #variance of prominences of top n peaks
-        
-   
-        #autocorr of combined wrists [7,8], combined ankles [13,14], per dimension, jerk 
-
-        wristcorrx_jer = (np.correlate(self.jerk[7][:,0], self.jerk[7][:,0], mode='full') + 
-             np.correlate(self.jerk[8][:,0], self.jerk[8][:,0], mode='full')) / 2
-
-        wristcorrz_jer = (np.correlate(self.jerk[7][:,2], self.jerk[7][:,2], mode='full') + 
-             np.correlate(self.jerk[8][:,2], self.jerk[8][:,2], mode='full')) / 2
-
-        anklecorrx_jer = (np.correlate(self.jerk[13][:,0], self.jerk[13][:,0], mode='full') + 
-             np.correlate(self.jerk[14][:,0], self.jerk[14][:,0], mode='full')) / 2
-
-        anklecorrz_jer = (np.correlate(self.jerk[13][:,2], self.jerk[13][:,2], mode='full') + 
-             np.correlate(self.jerk[14][:,2], self.jerk[14][:,2], mode='full')) / 2
-
-        wristcorry_jer = (np.correlate(self.jerk[7][:,1], self.jerk[7][:,1], mode='full') + 
-             np.correlate(self.jerk[8][:,1], self.jerk[8][:,1], mode='full')) / 2
-
-        anklecorry_jer = (np.correlate(self.jerk[13][:,1], self.jerk[13][:,1], mode='full') + 
-             np.correlate(self.jerk[14][:,1], self.jerk[14][:,1], mode='full')) / 2
-            
-        #autocorr features for wrists in horizontal plane, jerk
-        
-        peaks_wristsxz_jer = find_peaks(wristcorrx_jer + wristcorrz_jer, height=0, prominence=1e-4)
-        start = len(peaks_wristsxz_jer[0])//2
-        heights_wristsxz_jer = peaks_wristsxz_jer[1]['peak_heights'][start:]
-        prominences_wristsxz_jer = peaks_wristsxz_jer[1]['prominences'][start:]    
-                                      
-        self.features['Autocorr_wrists_height_jxz'] = heights_wristsxz_jer[0]
-        
-        top_prom_wristsxz_jer = []
-        shortestpeak_wristsxz_jer = np.sort(heights_wristsxz_jer)[::-1][npeaks]
-        for h in range(len(heights_wristsxz_jer)):
-            if heights_wristsxz_jer[h] >= shortestpeak_wristsxz_jer:
-                top_prom_wristsxz_jer.append(prominences_wristsxz_jer[h])
-                
-        self.features['Autocorr_wrists_prominence1_jxz'] = np.sort(top_prom_wristsxz_jer)[::-1][0]
-        self.features['Autocorr_wrists_prominence2_jxz'] = np.sort(top_prom_wristsxz_jer)[::-1][1]
-        self.features['Autocorr_wrists_prominence3_jxz'] = np.sort(top_prom_wristsxz_jer)[::-1][2]
-        #self.features['Autocorr_wrists_prominencejxz4'] = np.sort(top_prom_wristsxz_jer)[::-1][3]
-        self.features['Autocorr_wrists_prominence_xz_std'] = np.std(np.sort(top_prom_wristsxz_jer)[::-1])
-
-        #autocorr features for wrists in up/down direction, jerk
-
-        peaks_wristsy_jer = find_peaks(wristcorry_jer, height=0, prominence=1e-4)
-        start = len(peaks_wristsy_jer[0])//2
-        heights_wristsy_jer = peaks_wristsy_jer[1]['peak_heights'][start:]
-        prominences_wristsy_jer = peaks_wristsy_jer[1]['prominences'][start:]   
-
-        self.features['Autocorr_wrists_height_jy'] = heights_wristsy_jer[0]
-
-        top_prom_wristsy_jer = []
-        shortestpeak_wristsy_jer = np.sort(heights_wristsy_jer)[::-1][npeaks]
-        for h in range(len(heights_wristsy_jer)):
-            if heights_wristsy_jer[h] >= shortestpeak_wristsy_jer:
-                top_prom_wristsy_jer.append(prominences_wristsy_jer[h])
-
-        self.features['Autocorr_wrists_prominence1_jy'] = np.sort(top_prom_wristsy_jer)[::-1][0]
-        self.features['Autocorr_wrists_prominence2_jy'] = np.sort(top_prom_wristsy_jer)[::-1][1]
-        self.features['Autocorr_wrists_prominence3_jy'] = np.sort(top_prom_wristsy_jer)[::-1][2]
-        #self.features['Autocorr_wrists_prominencejy4'] = np.sort(top_prom_wristsy_jer)[::-1][3]
-        self.features['Autocorr_wrists_prominence_jy_std'] = np.std(np.sort(top_prom_wristsy_jer)[::-1])
-
-        #autocorr features for ankles in horizontal plane, jerk
-
-        peaks_anklxz_jer = find_peaks(anklecorrx_jer + anklecorrz_jer, height=0, prominence=1e-4)
-        start = len(peaks_anklxz_jer[0])//2
-        heights_anklxz_jer = peaks_anklxz_jer[1]['peak_heights'][start:]  
-        prominences_anklxz_jer = peaks_anklxz_jer[1]['prominences'][start:] 
-                                      
-        self.features['Autocorr_ankles_height_jxz'] = heights_anklxz_jer[0]
-        
-        top_prom_anklxz_jer = []
-        shortestpeak_anklxz_jer = np.sort(heights_anklxz_jer)[::-1][npeaks]
-        for h in range(len(heights_anklxz_jer)):
-            if heights_anklxz_jer[h] >= shortestpeak_anklxz_jer:
-                top_prom_anklxz_jer.append(prominences_anklxz_jer[h])
-                
-        self.features['Autocorr_ankle_prominence1_jxz'] = np.sort(top_prom_anklxz_jer)[::-1][0] 
-        self.features['Autocorr_ankle_prominence2_jxz'] = np.sort(top_prom_anklxz_jer)[::-1][1]
-        self.features['Autocorr_ankle_prominence3_jxz'] = np.sort(top_prom_anklxz_jer)[::-1][2]
-        #self.features['Autocorr_ankle_prominencejxz4'] = np.sort(top_prom_anklxz_jer)[::-1][3]
-        self.features['Autocorr_ankles_prominence_jxz_std'] = np.std(np.sort(top_prom_anklxz_jer)[::-1])
-
-        #autocorr features for ankles in up/down direction, jerk
-
-        peaks_ankly_jer = find_peaks(anklecorry_jer, height=0, prominence=1e-4)
-        start = len(peaks_ankly_jer[0])//2
-        heights_ankly_jer = peaks_ankly_jer[1]['peak_heights'][start:]
-        prominences_ankly_jer = peaks_ankly_jer[1]['prominences'][start:]    
-
-        self.features['Autocorr_ankles_height_jy'] = heights_ankly_jer[0]
-
-        top_prom_ankly_jer = []
-        shortestpeak_ankly_jer = np.sort(heights_ankly_jer)[::-1][npeaks]
-        for h in range(len(heights_ankly_jer)):
-            if heights_ankly_jer[h] >= shortestpeak_ankly_jer:
-                top_prom_ankly_jer.append(prominences_ankly_jer[h])
-
-        self.features['Autocorr_ankles_prominence1_jy'] = np.sort(top_prom_ankly_jer)[::-1][0]
-        self.features['Autocorr_ankles_prominence2_jy'] = np.sort(top_prom_ankly_jer)[::-1][1]
-        self.features['Autocorr_ankles_prominence3_jy'] = np.sort(top_prom_ankly_jer)[::-1][2]
-        #self.features['Autocorr_ankles_prominencejy4'] = np.sort(top_prom_ankly_jer)[::-1][3]
-        self.features['Autocorr_ankles_prominence_jy_std'] = np.std(np.sort(top_prom_ankly_jer)[::-1])
-
-        #corr for contralateral elbows and knees, jerk
-
-        ReLk_contracorr_jer = (np.correlate(self.jerk[6][:,0], self.jerk[11][:,0], mode='full') +
-                                    np.correlate(self.jerk[6][:,1], self.jerk[11][:,1], mode='full') +
-                                    np.correlate(self.jerk[6][:,2], self.jerk[11][:,2], mode='full'))/3
-
-
-        peaks_contracorr_ReLk_jer = find_peaks(ReLk_contracorr_jer, height=0, prominence=1e-4)
-        start = len(peaks_contracorr_ReLk_jer[0])//2
-        heights_contracorr_ReLk_jer = peaks_contracorr_ReLk_jer[1]['peak_heights'][start:]
-        prominences_contracorr_ReLk_jer = peaks_contracorr_ReLk_jer[1]['prominences'][start:]
-
-        self.features['Contracorr_ReLk_height_j'] = heights_contracorr_ReLk_jer[0]
-
-        top_prom_contracorr_ReLk_jer = []
-        shortestpeak_contracorr_ReLk_jer = np.sort(heights_contracorr_ReLk_jer)[::-1][npeaks]
-        for h in range(len(heights_contracorr_ReLk_jer)):
-            if heights_contracorr_ReLk_jer[h] >= shortestpeak_contracorr_ReLk_jer:
-                top_prom_contracorr_ReLk_jer.append(prominences_contracorr_ReLk_jer[h])
-
-        self.features['Contracorr_ReLk_prominence1_j'] = np.sort(top_prom_contracorr_ReLk_jer)[::-1][0]
-        self.features['Contracorr_ReLk_prominence2_j'] = np.sort(top_prom_contracorr_ReLk_jer)[::-1][1]
-        self.features['Contracorr_ReLk_prominence3_j'] = np.sort(top_prom_contracorr_ReLk_jer)[::-1][2]
-        #self.features['Contracorr_ReLk_prominencej4'] = np.sort(top_prom_contracorr_ReLk_jer)[::-1][3]
-        self.features['Contracorr_ReLk_prominence_j_std'] = np.std(np.sort(top_prom_contracorr_ReLk_jer)[::-1])
-        
-        LeRk_contracorr_jer = (np.correlate(self.jerk[5][:,0], self.jerk[12][:,0], mode='full') +
-                                    np.correlate(self.jerk[5][:,1], self.jerk[12][:,1], mode='full') +
-                                    np.correlate(self.jerk[5][:,2], self.jerk[12][:,2], mode='full'))/3 
-
-        peaks_contracorr_LeRk_jer = find_peaks(LeRk_contracorr_jer, height=0, prominence=1e-4)
-        start = len(peaks_contracorr_LeRk_jer[0])//2
-        heights_contracorr_LeRk_jer = peaks_contracorr_LeRk_jer[1]['peak_heights'][start:]
-        prominences_contracorr_LeRk_jer = peaks_contracorr_LeRk_jer[1]['prominences'][start:]   
-
-        self.features['Contracorr_LeRk_height_j'] = heights_contracorr_LeRk_jer[0]
-
-        top_prom_contracorr_LeRk_jer = []
-        shortestpeak_contracorr_LeRk_jer = np.sort(heights_contracorr_LeRk_jer)[::-1][npeaks]
-        for h in range(len(heights_contracorr_LeRk_jer)):
-            if heights_contracorr_LeRk_jer[h] >= shortestpeak_contracorr_LeRk_jer:
-                top_prom_contracorr_LeRk_jer.append(prominences_contracorr_LeRk_jer[h]) 
-
-        self.features['Contracorr_LeRk_prominence1_j'] = np.sort(top_prom_contracorr_LeRk_jer)[::-1][0]
-        self.features['Contracorr_LeRk_prominence2_j'] = np.sort(top_prom_contracorr_LeRk_jer)[::-1][1]
-        self.features['Contracorr_LeRk_prominence3_j'] = np.sort(top_prom_contracorr_LeRk_jer)[::-1][2]
-        #self.features['Contracorr_LeRk_prominencej4'] = np.sort(top_prom_contracorr_LeRk_jer)[::-1][3]
-        self.features['Contracorr_LeRk_prominence_j_std'] = np.std(np.sort(top_prom_contracorr_LeRk_jer)[::-1])
-        
-    def get_features(self):
-        
+    def get_features(self, sparse=False):
         self.get_movedata()
-        self.get_expandedness()
-        self.get_asymmetries()
-        self.get_autocorr_features()
         self.features['id'] = self.id
         self.features['Genre'] = self.genre
+
+        self.get_expandedness(sparse=sparse)
+        self.get_asymmetries(sparse=sparse)
+        self.get_joint_corr_features(sparse=sparse)
+
+     
+        
+        
+
+        
