@@ -320,6 +320,7 @@ class Dance:
         self.features['corr_prominence1_{}_{}'.format(label, dimlabel)] = prom1
         self.features['corr_peak1_{}_{}'.format(label, dimlabel)] = peak1
         self.features['corr_onehit_{}_{}'.format(label, dimlabel)] = onehit
+        self.features['corr_lastpeak_{}_{}'.format(label, dimlabel)] = lastpeak
        
 
         if sparse==False:
@@ -376,21 +377,21 @@ class Dance:
         if sparse==False:
             for dim in range(3):
                 self.get_joint_corr(nose, nose, 'nose', dim)
-                self.get_joint_corr(Rwrist, Lwrist, 'wrists', dim)
-                self.get_joint_corr(Rwrist, Lknee, 'RwristLknee', dim)
-                self.get_joint_corr(Rshoulder, Lhip, 'RshoLhip', dim)
+                self.get_joint_corr(Rwrist, Rwrist, 'Rwrist', dim)
+                self.get_joint_corr(Lwrist, Lwrist, 'Lwrist', dim)
                 self.get_joint_corr(Rankle, Rankle, 'Rankle', dim)
                 self.get_joint_corr(Lankle, Lankle, 'Lankle', dim)
                 self.get_joint_corr(sacrum, sacrum, 'sacrum', dim)
                 self.get_joint_corr(Rshoulder, Lhip, 'RshoLhip', dim)
                 self.get_joint_corr(Lshoulder, Rhip, 'LshoRhip', dim)
-                self.get_joint_corr(Lshoulder, Rankle, 'LshoRankl', dim)
-                self.get_joint_corr(Rwrist, Lknee, 'RwristLknee', dim)
-                self.get_joint_corr(Lwrist, Rhip, 'LwristRhip', dim)
+                self.get_joint_corr(Relbow, Relbow, 'Relbow', dim)
+                self.get_joint_corr(Lelbow, Lelbow, 'Lelbow', dim)
+                self.get_joint_corr(Rknee, Rknee, 'Rknee', dim)
+                self.get_joint_corr(Lknee, Lknee, 'Lknee', dim)
                 self.get_joint_corr(Rwrist, Rankle, 'RwristRankle', dim)
                 self.get_joint_corr(Rshoulder, Lankle, 'RshoLankl', dim)
-                self.get_joint_corr(nose, Lhip, 'noseLhip', dim)
-                self.get_joint_corr(nose, Rankle, 'noseRankle', dim)
+                #self.get_joint_corr(nose, Lhip, 'noseLhip', dim)
+                #self.get_joint_corr(nose, Rankle, 'noseRankle', dim)
 
                  
             

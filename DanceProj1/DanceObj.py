@@ -182,6 +182,8 @@ class Dance:
             self.features['Footspaceacc'] = footspaceacc.mean()
             self.features['Handspaceacc'] = handspaceacc.mean()
 
+            #ratio of handspace to footspace
+
         
               
     def get_asymmetries(self, Ridxs=[4,6,8,10,12,14], Lidxs=[3,5,7,9,11,13], 
