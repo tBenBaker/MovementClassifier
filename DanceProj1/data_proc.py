@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 sys.path.append("../../")
 
-from DanceProj1.DanceObj import Dance
+from DanceProj1.DanceObjScratch import Dance
 
 
 def get_data(path):
