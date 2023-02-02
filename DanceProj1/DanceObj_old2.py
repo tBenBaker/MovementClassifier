@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy import signal
-from scipy.signal import find_peaks, peak_widths
+from scipy.signal import find_peaks
 from scipy.signal import savgol_filter
 
 
@@ -91,88 +91,6 @@ class Dance:
         
         self.sacrum = [sacrumpos, sacrumvel, sacrumacc, sacrumjer] 
         
-    def get_mofeatures(self, sparse=False):
-        #angular momentum of each joint, summed over all joints
-        #sparse = True returns minimal array of features 
-        
-        self.get_sacrum()
-        angmom = np.empty_like(self.pos[0])
-        
-        for j in range(self.numjoints):
-                angmom = np.cross(self.pos[j] - self.sacrum[0], np.abs(self.velocity[j]))
-        angmomm = angmom.mean()
-        
-        if sparse==True:
-            self.features['angularmomentum'] = angmomm
-            self.features['angularmomentumstd'] = angmomm.std()
-
-        #wrist and ankle acceleration
-        Lwrist, Rwrist = [7,8] 
-        Lankle, Rankle = [13,14]
-       
-        wristacc = (np.abs(self.acceleration[Lwrist]) + np.abs(self.acceleration[Rwrist])) / 2   
-        ankleacc = (np.abs(self.acceleration[Lankle]) + np.abs(self.acceleration[Rankle])) / 2  
-
-        self.features['wristacceleration'] = wristacc.mean()
-        self.features['wristaccstd'] = wristacc.std()           
-        self.features['ankleacceleration'] = ankleacc.mean()
-        self.features['ankleaccstd'] = ankleacc.std()
-        
-        if sparse==False:
-
-            self.features['angularmomentumxz'] = angmom[:,0].mean() + angmom[:,2].mean()
-            self.features['angularmomentumy'] = angmom[:,1].mean()
-            self.features['angularmomentumxzstd'] = angmom[:,0].std() + angmom[:,2].std()
-            self.features['angularmomentumystd'] = angmom[:,1].std()
-            self.features['angularmomentumnose'] = angmom[0].mean()
-            self.features['angularmomentumnosestd'] = angmom[0].std()
-            self.features['angularmomentumelbows'] = angmom[5].mean() + angmom[6].mean()
-            self.features['angularmomentumelbowsstd'] = angmom[5].std() + angmom[6].std()
-
-            ypeaks, _ = find_peaks(angmom[:,1], height=0, distance=30, prominence=1000)
-            yapeaks, _ = find_peaks(-angmom[:,1], height=0, distance=30, prominence=1000)
-
-            self.features['ypeaks'] = (len(ypeaks) + len(yapeaks)) / self.numframes
-
-            #ankle height
-            #compute lowest point of ankle
-            floor = min(self.pos[Rankle][:,1]) 
-            ankleheight = (self.pos[Lankle][:,1] + self.pos[Rankle][:,1] / 2) - floor
-            ankleheightm = ankleheight.mean()
-            
-            self.features['ankleheight'] = ankleheightm
-            self.features['ankleheightstd'] = ankleheight.std()
-            
-            #hand and ankle distance
-            Lwrist = self.pos[7]  #left wrist
-            Rwrist = self.pos[8]  #right wrist
-            handspace = np.abs(Lwrist - Rwrist).mean(axis=1)
-
-            Rankle = self.pos[14]  #right ankle
-            Lankle = self.pos[13]  #left ankle
-            anklespace = np.abs(Lankle - Rankle).mean(axis=1)
-
-            contraspace = np.abs(Lankle - Rwrist).mean(axis=1) + np.abs(Rankle - Lwrist).mean(axis=1)
-            self.features['contraspace'] = contraspace.mean()
-            self.features['contraspacstd'] = contraspace.std()
-
-            #rate of change of anklespace and handspace
-            anklespacevel = (anklespace[1:] - anklespace[:-1]) / self.dt
-            #savgol filter
-            anklespacevel = savgol_filter(anklespacevel, window_length=45, polyorder=2, mode='nearest')
-            #acceleration
-            anklespaceacc = (anklespacevel[1:] - anklespacevel[:-1]) / self.dt
-            handspacevel = (handspace[1:] - handspace[:-1]) / self.dt
-            handspacevel = savgol_filter(handspacevel, window_length=45, polyorder=2, mode='nearest')
-            handspaceacc = (handspacevel[1:] - handspacevel[:-1]) / self.dt
-            
-            self.features['anklespaceacc'] = anklespaceacc.mean()
-            self.features['Handspaceacc'] = handspaceacc.mean()
-            self.features['anklespaceaccstd'] = anklespaceacc.std()
-            self.features['Handspaceaccstd'] = handspaceacc.std()
-
-
-    
     def get_expandedness(self, sparse=False):   #expandedness ~ distance of joints from sacrum
         
         self.get_sacrum()
@@ -207,16 +125,64 @@ class Dance:
         expajer = expajer.sum(axis=1)
 
         self.features['Expandedness'] = expa.sum()/self.numframes
-        self.features['Expandedness_std'] = expa.std()
 
+        #calculate footdistance
+        Lankle = self.pos[13]  #left ankle
+        Rankle = self.pos[14]  #right ankle
+        footspace = np.abs(Lankle - Rankle).mean(axis=1)
+        Lanklex = Lankle[:,0]
+        Ranklex = Rankle[:,0]
+        Lankley = Lankle[:,1]
+        Rankley = Rankle[:,1]
+        Lanklez = Lankle[:,2]
+        Ranklez = Rankle[:,2]
+        footspacex = np.abs(Lanklex - Ranklex)
+
+
+        #calculate handdistance
+        Lwrist = self.pos[7]  #left wrist
+        Rwrist = self.pos[8]  #right wrist
+        handspace = np.abs(Lwrist - Rwrist).mean(axis=1)
+        Lwristx = Lwrist[:,0]
+        Rwristx = Rwrist[:,0]
+        Lwristy = Lwrist[:,1]
+        Rwristy = Rwrist[:,1]
+        Lwristz = Lwrist[:,2]
+        Rwristz = Rwrist[:,2]
+        handspacex = np.abs(Lwristx - Rwristx)
+
+        #rate of change of footspace and handspace
+        footspacevel = (footspace[1:] - footspace[:-1]) / self.dt
+        #savgol filter
+        footspacevel = savgol_filter(footspacevel, window_length=45, polyorder=2, mode='nearest')
+        #acceleration
+        footspaceacc = (footspacevel[1:] - footspacevel[:-1]) / self.dt
+
+        handspacevel = (handspace[1:] - handspace[:-1]) / self.dt
+        handspacevel = savgol_filter(handspacevel, window_length=45, polyorder=2, mode='nearest')
+        handspaceacc = (handspacevel[1:] - handspacevel[:-1]) / self.dt
+        
+        
+        #
+        #fix footspace?
+        self.features['FootspaceX'] = footspacex.mean()
+        self.features['HandspaceX'] = handspacex.mean()
+        
         if sparse==False:
-            self.features['Expandedness_range'] = expa.max() - expa.min()
-            self.features['Expandednessvel'] = expavel.sum()/self.numframes
             self.features['Expandednessvel_range'] = expavel.max() - expavel.min()
+            self.features['Expandednessvel'] = expavel.sum()/self.numframes
             self.features['Expandednessacc'] = expaacc.sum()/self.numframes
+            self.features['Expandednessjer'] = expajer.sum()/self.numframes
             self.features['Expandednessacc_range'] = expaacc.max() - expaacc.min()
             self.features['Expandednessjer'] = expajer.sum()/self.numframes
             self.features['Expandednessjer_range'] = expajer.max() - expajer.min()
+    
+            self.features['Footspace_range'] = footspace.max() - footspace.min()
+            self.features['Handspace_range'] = handspace.max() - handspace.min()
+            self.features['Footspaceacc'] = footspaceacc.mean()
+            self.features['Handspaceacc'] = handspaceacc.mean()
+
+            #ratio of handspace to footspace
 
         
               
@@ -371,7 +337,7 @@ class Dance:
         peaksy, propertiesy = find_peaks(corry, prominence=prominence, distance=distance, height=0)
         lastpeaky = peaksy[-1]/len(corry) #get last peak's time lag
         onehity = propertiesy['peak_heights'][0]
-        promstdy = np.std(propertiesy['prominences']) #get standard deviation of prominences
+        deviatey = np.std(corry[:peaksy[-1]]) / peaksy[-1]
         peak1y = peaksy[np.argsort(propertiesy['peak_heights'])[-1]] / len(corry) #get top peak's time lag
         peak2y = peaksy[np.argsort(propertiesy['peak_heights'])[-2]] / len(corry) #get 2nd peak's time lag
         prom1y = propertiesy['prominences'][np.argsort(propertiesy['peak_heights'])[-1]] #get top peak's prominence
@@ -380,14 +346,12 @@ class Dance:
         peaksxz, propertiesxz = find_peaks(corrxz, prominence=prominence, distance=distance, height=0)
         lastpeakxz = peaksxz[-1]/len(corrxz) #get last peak's time lag
         onehitxz = propertiesxz['peak_heights'][0]
-        promstdxz = np.std(propertiesxz['prominences'])
+        deviatexz = np.std(corrxz[:peaksxz[-1]]) / peaksxz[-1]
         peak1xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-1]] / len(corrxz) #get top peak's time lag
         peak2xz = peaksxz[np.argsort(propertiesxz['peak_heights'])[-2]] / len(corrxz) #get 2nd peak's time lag
         prom1xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-1]] #get top peak's prominence
         prom2xz = propertiesxz['prominences'][np.argsort(propertiesxz['peak_heights'])[-2]] #get 2nd peak's prominence
 
-        
-        
         self.features['lastpeak_y{}'.format(label)] = lastpeaky
         self.features['prominence1_y{}'.format(label)] = prom1y
         
@@ -413,8 +377,8 @@ class Dance:
             self.features['lastpeak_xz{}'.format(label)] = lastpeakxz
             self.features['onehit_y{}'.format(label)] = onehity
             self.features['onehit_xz{}'.format(label)] = onehitxz
-            self.features['promstd_xz{}'.format(label)] = promstdxz
-            self.features['promstd_y{}'.format(label)] = promstdy
+            self.features['deviate_xz{}'.format(label)] = deviatexz
+            self.features['deviate_y{}'.format(label)] = deviatey
             self.features['peak2_y{}'.format(label)] = peak2y
             self.features['prominence2_y{}'.format(label)] = prom2y
             self.features['peak3_y{}'.format(label)] = peak3y
@@ -480,17 +444,16 @@ class Dance:
             self.get_joint_corr(Rwrist, Rwrist, 'Rwrist')
             self.get_joint_corr(Lankle, Lankle, 'Lankle')
             self.get_joint_corr(Rankle, Rankle, 'Rankle')
-            self.get_joint_corr(Rankle, Lankle, 'ankles')
             self.get_joint_corr(sacrum, sacrum, 'sacrum')
             self.get_joint_corr(Rshoulder, Lknee, 'contralatRsLk')
-            self.get_joint_corr(Lhip, Rwrist, 'contralatLhRw')
-            self.get_joint_corr(Relbow, Lelbow, 'elbows')
+            self.get_joint_corr(Lshoulder, Rknee, 'contralatLsRk')
+            self.get_joint_corr(Relbow, Relbow, 'Relbow')
             self.get_joint_corr(Lwrist, Lwrist, 'Lwrist')
+            self.get_joint_corr(Lelbow, Lelbow, 'Lelbow')
             self.get_joint_corr(Rknee, Lknee, 'knees')
             self.get_joint_corr(Rwrist, Rankle, 'RwristRankle')
             self.get_joint_corr(Lwrist, Lankle, 'LwristLankle')
-            self.get_joint_corr(Rwrist, Lwrist, 'wrists')
-
+            self.get_joint_corr(sacrum, nose, 'sacrumnose')
 
                  
             
@@ -499,7 +462,7 @@ class Dance:
         self.get_movedata()
         self.features['id'] = self.id
         self.features['Genre'] = self.genre
-        self.get_mofeatures(sparse=sparse)
+
         self.get_expandedness(sparse=sparse)
         self.get_asymmetries(sparse=sparse)
         self.get_joint_corr_features(sparse=sparse)
