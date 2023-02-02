@@ -117,7 +117,7 @@ def data_to_features(dataBM, dataFM, sparse=False):
     return dfBM, dfFM
         
      
-def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.502, testfrac_bas=0, valfrac_adv_nonT=0, valfrac_bas=0):
+def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.51, testfrac_bas=0, valfrac_adv_nonT=0, valfrac_bas=0):
 
     testset = pd.DataFrame(columns=dfAdvanced.columns)  #initialize testset
     Genres = list(dfAdvanced.Genre.unique())        #get list of genres

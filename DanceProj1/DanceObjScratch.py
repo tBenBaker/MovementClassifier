@@ -99,7 +99,7 @@ class Dance:
         angmom = np.empty_like(self.pos[0])
         
         for j in range(self.numjoints):
-                angmom = np.cross(self.pos[j] - self.sacrum[0], self.velocity[j])
+                angmom = np.cross(self.pos[j] - self.sacrum[0], np.abs(self.velocity[j]))
         angmomm = angmom.mean()
         
         if sparse==True:
@@ -110,25 +110,24 @@ class Dance:
         Lwrist, Rwrist = [7,8] 
         Lankle, Rankle = [13,14]
        
-        wristacc = (self.acceleration[Lwrist] + self.acceleration[Rwrist]) / 2   
-        ankleacc = (self.acceleration[Lankle] + self.acceleration[Rankle]) / 2  
-        wristaccm = wristacc.mean()
-        ankleaccm = ankleacc.mean()
+        wristacc = (np.abs(self.acceleration[Lwrist]) + np.abs(self.acceleration[Rwrist])) / 2   
+        ankleacc = (np.abs(self.acceleration[Lankle]) + np.abs(self.acceleration[Rankle])) / 2  
 
-        self.features['wristacceleration'] = wristaccm
+        self.features['wristacceleration'] = wristacc.mean()
         self.features['wristaccstd'] = wristacc.std()           
-        self.features['ankleacceleration'] = ankleaccm
+        self.features['ankleacceleration'] = ankleacc.mean()
         self.features['ankleaccstd'] = ankleacc.std()
         
         if sparse==False:
 
-
-            self.features['angularmomentumx'] = angmom[:,0].mean()
+            self.features['angularmomentumxz'] = angmom[:,0].mean() + angmom[:,2].mean()
             self.features['angularmomentumy'] = angmom[:,1].mean()
-            self.features['angularmomentumz'] = angmom[:,2].mean()
-            self.features['angularmomentumxstd'] = angmom[:,0].std()
+            self.features['angularmomentumxzstd'] = angmom[:,0].std() + angmom[:,2].std()
             self.features['angularmomentumystd'] = angmom[:,1].std()
-            self.features['angularmomentumzstd'] = angmom[:,2].std()
+            self.features['angularmomentumnose'] = angmom[0].mean()
+            self.features['angularmomentumnosestd'] = angmom[0].std()
+            self.features['angularmomentumelbows'] = angmom[5].mean() + angmom[6].mean()
+            self.features['angularmomentumelbowsstd'] = angmom[5].std() + angmom[6].std()
 
             ypeaks, _ = find_peaks(angmom[:,1], height=0, distance=30, prominence=1000)
             yapeaks, _ = find_peaks(-angmom[:,1], height=0, distance=30, prominence=1000)
@@ -148,16 +147,14 @@ class Dance:
             Lwrist = self.pos[7]  #left wrist
             Rwrist = self.pos[8]  #right wrist
             handspace = np.abs(Lwrist - Rwrist).mean(axis=1)
-            Lwristx = Lwrist[:,0]
-            Rwristx = Rwrist[:,0]
-            handspacex = np.abs(Lwristx - Rwristx)
 
             Rankle = self.pos[14]  #right ankle
             Lankle = self.pos[13]  #left ankle
             anklespace = np.abs(Lankle - Rankle).mean(axis=1)
-            Lanklex = Lankle[:,0]
-            Ranklex = Rankle[:,0]
-            anklespacex = np.abs(Lanklex - Ranklex)
+
+            contraspace = np.abs(Lankle - Rwrist).mean(axis=1) + np.abs(Rankle - Lwrist).mean(axis=1)
+            self.features['contraspace'] = contraspace.mean()
+            self.features['contraspacstd'] = contraspace.std()
 
             #rate of change of anklespace and handspace
             anklespacevel = (anklespace[1:] - anklespace[:-1]) / self.dt
