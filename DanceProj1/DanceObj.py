@@ -507,6 +507,8 @@ class Dance:
         if sparse==False:
             self.get_joint_corr(nose, nose, 'nose')
             self.get_joint_corr(Rwrist, Rwrist, 'Rwrist')
+            self.get_joint_corr(Lwrist, Lwrist, 'Lwrist')
+            self.get_joint_corr(Rwrist, Lwrist, 'wrists')
             self.get_joint_corr(Lankle, Lankle, 'Lankle')
             self.get_joint_corr(Rankle, Rankle, 'Rankle')
             self.get_joint_corr(Rankle, Lankle, 'ankles')
@@ -514,11 +516,10 @@ class Dance:
             self.get_joint_corr(Rshoulder, Lknee, 'contralatRsLk')
             self.get_joint_corr(Lhip, Rwrist, 'contralatLhRw')
             self.get_joint_corr(Relbow, Lelbow, 'elbows')
-            self.get_joint_corr(Lwrist, Lwrist, 'Lwrist')
             self.get_joint_corr(Rknee, Lknee, 'knees')
             self.get_joint_corr(Rwrist, Rankle, 'RwristRankle')
             self.get_joint_corr(Lwrist, Lankle, 'LwristLankle')
-            self.get_joint_corr(Rwrist, Lwrist, 'wrists')
+            
 
 
                  

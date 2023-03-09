@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import sys
 sys.path.append("../../")
-from DanceProj1.DanceObjScratch import Dance
+from DanceProj1.DanceObj_scratch import Dance
 from DanceProj1.data_proc import get_data, data_to_features
 import xgboost as xgb
 
@@ -23,7 +23,7 @@ def get_XGBclassifier():
 
     from DanceProj1.data_proc import traintestval_split
     train, valid, testset = traintestval_split(dfBasic, dfAdvanced, 
-                            testfrac_adv=.5, testfrac_bas=0, valfrac_adv_nonT=0, valfrac_bas=0)
+                            testfrac_adv=.51, testfrac_bas=0, valfrac_adv_nonT=0, valfrac_bas=0)
 
     #split into X and y
     test_ids = testset['id']
@@ -46,7 +46,7 @@ def get_XGBclassifier():
     y_test = y_test.replace(labels, list(range(len(labels))), regex=True)
     X_test = X_test.replace(labels, list(range(len(labels))), regex=True)
 
-    xgb_mod = xgb.XGBClassifier(objective='multi:softprob', eta =.2, max_depth =8, subsample =.6, random_state=42, n_jobs=16) 
+    xgb_mod = xgb.XGBClassifier(objective='multi:softprob', eta =.2, max_depth =8, subsample =.6, random_state=2, n_jobs=16) 
     #learning rate, max depth and subsample tuned empirically
     xgb_mod.fit(X_train, y_trainxgb)
     y_pred = xgb_mod.predict(X_test)
