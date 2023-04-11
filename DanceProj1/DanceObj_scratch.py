@@ -91,6 +91,16 @@ class Dance:
         sacrumjer = np.pad(sacrumjer, ((0,1), (0,0)), mode='edge')
         
         self.sacrum = [sacrumpos, sacrumvel, sacrumacc, sacrumjer] 
+
+        #standard deviation of sacrum position, avg across 3 dimensions
+        sacrumstd = np.std(sacrumpos, axis=0)
+        sacrumstd = np.mean(sacrumstd)
+        self.features['sacrumstd'] = sacrumstd
+        #average absolute value of jerk of sacrum, avg across 3 dimensions
+        sacrumjerkmag = np.linalg.norm(sacrumjer, axis=1)
+        sacrumjerkmag = np.mean(sacrumjerkmag)
+        self.features['sacrumjerkmag'] = sacrumjerkmag
+
         
     def get_mofeatures(self, sparse=False):
         #angular momentum of each joint, summed over all joints
@@ -137,7 +147,7 @@ class Dance:
 
             self.features['ypeaks'] = (len(ypeaks) + len(yapeaks)) / self.numframes
             self.features['xzpeaks'] = (len(xzpeaks) + len(xzapeaks)) / self.numframes
-
+            
             #if there are non NaN values for prominence and width, calculate mean and std
             if np.isnan(yproperties['prominences']).all() == False:
                 self.features['yprominence'] = np.mean(yproperties['prominences'])
@@ -519,8 +529,8 @@ class Dance:
         self.features['Genre'] = self.genre
         self.get_mofeatures(sparse=sparse)
         self.get_expandedness(sparse=sparse)
-        self.get_asymmetries(sparse=sparse)
-        self.get_joint_corr_features(sparse=sparse)
+        #self.get_asymmetries(sparse=sparse)
+        #self.get_joint_corr_features(sparse=sparse)
 
      
         
