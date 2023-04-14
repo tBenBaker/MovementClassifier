@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import sys
 sys.path.append("../../")
-from DanceProj1.DanceObj_scratch import Dance
+from DanceProj1.DanceObj import Dance
 from DanceProj1.data_proc import get_data, data_to_features
 import xgboost as xgb
 

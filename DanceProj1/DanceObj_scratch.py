@@ -30,8 +30,6 @@ class Dance:
         self.movedata = []
         self.sacrum = []
         
-        
-        
         self.features = {} #initialize dictionary of features
 
     def get_movedata(self):

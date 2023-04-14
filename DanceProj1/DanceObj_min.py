@@ -31,30 +31,38 @@ class Dance:
         self.sacrum = []
         self.features = {} #initialize dictionary of features
 
-    @staticmethod     
-    def smooth_derivative(data, dt):
-        derivative = (data[:, 1:] - data[:, :-1]) / dt
-        smoothed_derivative = np.empty_like(derivative)
-
-        for index, joint in enumerate(derivative):
-            for dim in range(3):
-                smoothed_derivative[index, ..., dim] = savgol_filter(joint[:, dim], window_length=45, polyorder=2, mode='nearest')
-        smoothed_derivative = np.pad(smoothed_derivative, ((0, 0), (0, 1), (0, 0)), mode='edge')
-        
-        return smoothed_derivative
-
     def get_movedata(self):
-        # Calculate velocity, acceleration, and jerk using smooth_derivative
+        #calculate deriv, smooth, repeat 3x for velocity, acceleration, jerk
 
-        vel = self.smooth_derivative(self.pos, self.dt)  # Calculate smoothed velocity
-        acc = self.smooth_derivative(vel, self.dt)  # Calculate smoothed acceleration
-        jerk = self.smooth_derivative(acc, self.dt)  # Calculate smoothed jerk
+        rawvel = (self.pos[:, 1:] - self.pos[:, :-1]) / self.dt
+        vel = np.empty_like(rawvel)                    
+        
+        for index, joint in enumerate(rawvel):
+            for dim in range(3):                        #savgol smoothing filter. window empirically set 
+                vel[index, ..., dim] = savgol_filter(joint[:,dim], window_length=45, polyorder=2, mode='nearest')  
+        
+        vel = np.pad(vel, ((0,0), (0,1), (0,0)), mode='edge') #pad last frame to maintain sizing                                   
+        
+        rawacc = (vel[:, 1:] - vel[:, :-1]) / self.dt       #derive acceleration
+        acc = np.empty_like(rawacc)
+        
+        for index, joint in enumerate(rawacc):         #smoothing filter
+            for dim in range(3):                        
+                acc[index, ..., dim] = savgol_filter(joint[:,dim], window_length=45, polyorder=2, mode='nearest')
+        acc = np.pad(acc, ((0,0), (0,1), (0,0)), mode='edge')
+        
+        rawjerk = (acc[:, 1:] - acc[:, :-1]) / self.dt      #derive jerk
+        jerk = np.empty_like(rawjerk)
+        
+        for index, joint in enumerate(rawjerk):         #smoothing filter
+            for dim in range(3):                        
+                jerk[index, ..., dim] = savgol_filter(joint[:,dim], window_length=45, polyorder=2, mode='nearest')
+        jerk = np.pad(jerk, ((0,0), (0,1), (0,0)), mode='edge')
         
         self.velocity = vel
         self.acceleration = acc
         self.jerk = jerk
-        self.movedata = [self.pos, self.velocity, self.acceleration, self.jerk]
-      
+        self.movedata = [self.pos, self.velocity, self.acceleration, self.jerk]    
 
     def get_sacrum(self, hipidxs=[9,10]):       #populate virtual sacrum joint by averaging hip positions.   
                                                                     #idxs of AIST are [9,10]
