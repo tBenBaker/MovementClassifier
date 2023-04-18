@@ -109,6 +109,11 @@ class Dance:
         if sparse==True:
             self.features['angularmomentum'] = angmomm
             self.features['angularmomentumstd'] = angmomm.std()
+
+            peaks, properties = find_peaks(angmom, height=0, distance=30, prominence=500, width=10)
+            apeaks, aproperties = find_peaks(-angmom, height=0, distance=30, prominence=500, width=10)
+
+            self.features['peaks'] = (len(peaks) + len(apeaks)) / self.numframes
         
         if sparse==False:
 
@@ -185,9 +190,10 @@ class Dance:
     #     #     self.features['io_asymmetry'] = io_asymmetry
 
     def get_features(self, sparse=False):
-        self.get_movedata()
         self.features['id'] = self.id
         self.features['Genre'] = self.genre
+        self.get_movedata()
+        self.get_sacrum()
         self.get_angularmomentum_features(sparse=sparse)
         self.get_wrist_ankle_features(sparse=sparse)
         self.get_expandedness(sparse=sparse)
