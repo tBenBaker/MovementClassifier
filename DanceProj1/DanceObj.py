@@ -169,25 +169,6 @@ class Dance:
         self.features['Expandedness'] = expa.sum()/self.numframes
         self.features['Expandedness_std'] = expa.std()
 
-    # def get_asymmetries(self, Ridxs=[4,6,8,10,12,14], Lidxs=[3,5,7,9,11,13], 
-    #     Inidxs=[3, 4, 9, 10], Outidxs=[7, 8, 13, 14],
-    #     Topidxs=[3, 4, 5, 6, 7, 8], Botidxs=[9, 10, 11, 12, 13, 14], sparse=False):
-
-    #     def calculate_asymmetry(idxs1, idxs2):
-    #         movement1 = np.sum([np.sum(np.abs((self.velocity[idx], self.dt))) for idx in idxs1])
-    #         movement2 = np.sum([np.sum(np.abs((self.velocity[idx], self.dt))) for idx in idxs2])
-
-    #         return np.abs(movement1 - movement2)
-
-    #     lr_asymmetry = calculate_asymmetry(Lidxs, Ridxs)
-    #     tb_asymmetry = calculate_asymmetry(Topidxs, Botidxs)
-    #     io_asymmetry = calculate_asymmetry(Inidxs, Outidxs)
-
-    #     self.features['tb_asymmetry'] = tb_asymmetry
-        
-    #     # if sparse == False:
-    #     #     self.features['lr_asymmetry'] = lr_asymmetry
-    #     #     self.features['io_asymmetry'] = io_asymmetry
 
     def get_features(self, sparse=False):
         self.features['id'] = self.id
@@ -197,8 +178,6 @@ class Dance:
         self.get_angularmomentum_features(sparse=sparse)
         self.get_wrist_ankle_features(sparse=sparse)
         self.get_expandedness(sparse=sparse)
-        #self.get_asymmetries(sparse=sparse)
-
      
         
         
