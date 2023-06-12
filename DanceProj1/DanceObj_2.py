@@ -170,70 +170,74 @@ class Dance:
             self.features['xzpeaks'] = (len(xzpeaks) + len(xzapeaks)) / self.numframes
 
     
-    def get_angularmomentum_autocorr_features(self):
+    def get_autocorr_features(self):
 
         self.get_sacrum()
-        angmom = np.empty_like(self.pos[0])
-        for j in range(self.numjoints):
-                angmom = np.cross(self.pos[j] - self.sacrum[0], np.abs(self.velocity[j]))
+        Lwrist, Rwrist = [7,8] 
+        Lankle, Rankle = [13,14]
+
+        #get autocorrelation of left wrist, left ankle, and sacrum, y dimension
+        wristautocorr = np.correlate(self.pos[Lwrist][:,1], self.pos[Lwrist][:,1], mode='full')
+        #ankleautocorr = np.correlate(self.pos[Lankle][:,1], self.pos[Lankle][:,1], mode='full')
+        #sacrumautocorr = np.correlate(self.sacrum[0][:,1], self.sacrum[0][:,1], mode='full')
         
-        ydim_autocorr = np.correlate(angmom[:,1], angmom[:,1], mode='full')
-        xzdim_autocorr = np.correlate(angmom[:,0] + angmom[:,2], angmom[:,0] + angmom[:,2], mode='full')
         #take only positive lags and normalize
-        ydim_autocorr = ydim_autocorr[len(ydim_autocorr)//2:] / ydim_autocorr.max()
-        xzdim_autocorr = xzdim_autocorr[len(xzdim_autocorr)//2:] / xzdim_autocorr.max()
+        wristautocorr = wristautocorr[wristautocorr.size//2:] / wristautocorr.max()
+        #ankleautocorr = ankleautocorr[ankleautocorr.size//2:] / ankleautocorr.max()
+        #sacrumautocorr = sacrumautocorr[sacrumautocorr.size//2:] / sacrumautocorr.max()
         
         #find peaks/properties
-        peaksy, propertiesy = find_peaks(ydim_autocorr, height=0, distance=30, prominence=0.1, width=10)
-        peaksxz, propertiesxz = find_peaks(xzdim_autocorr, height=0, distance=30, prominence=0.1, width=10)
+        wristpeaksy, wristpropertiesy = find_peaks(wristautocorr, height=0, distance=30, prominence=0.1, width=10)
+        #anklepeaksy, anklepropertiesy = find_peaks(ankleautocorr, height=0, distance=30, prominence=0.1, width=10)
+        #sacrumpeaksy, sacrumpropertiesy = find_peaks(sacrumautocorr, height=0, distance=30, prominence=0.1, width=10)
 
         #frame of first peak
-        if len(peaksy) > 0:
-            self.features['ypeak1'] = peaksy[0]
+        if len(wristpeaksy) > 0:
+            self.features['ypeak1'] = wristpeaksy[0]
         else:
             self.features['ypeak1'] = 0
 
-        if len(peaksxz) > 0:
-            self.features['xzpeak1'] = peaksxz[0]
-        else:
-            self.features['xzpeak1'] = 0
+        # if len(peaksxz) > 0:
+        #     self.features['xzpeak1'] = peaksxz[0]
+        # else:
+        #     self.features['xzpeak1'] = 0
 
         #prominence of the highest peak
         #then ratio of the first peak prominence to the highest peak prominence, 
         #multiplied by the absval of frames between the first peak and the highest (plus one)
-        if len(peaksy) > 0:
-            self.features['ypeakprom'] = propertiesy['prominences'].max()
-            self.features['ypeakpromratio'] = (propertiesy['prominences'][0]/propertiesy['prominences'].max()) \
-                * (np.abs(peaksy[0] - peaksy.max()) + 1)
+        if len(wristpeaksy) > 0:
+            self.features['ywristpeakprom'] = wristpropertiesy['prominences'].max()
+            self.features['ywristpeakpromratio'] = (wristpropertiesy['prominences'][0]/wristpropertiesy['prominences'].max()) \
+                * (np.abs(wristpeaksy[0] - wristpeaksy.max()) + 1)
         else:
-            self.features['ypeakprom'] = 0
-            self.features['ypeakpromratio'] = 0
+            self.features['ywristpeakprom'] = 0
+            self.features['ywristpeakpromratio'] = 0
 
-        if len(peaksxz) > 0:
-            self.features['xzpeakprom'] = propertiesxz['prominences'].max()
-            self.features['xzpeakpromratio'] = (propertiesxz['prominences'][0]/propertiesxz['prominences'].max()) \
-                * (np.abs(peaksxz[0] - peaksxz.max()) + 1)
-        else:
-            self.features['xzpeakprom'] = 0
-            self.features['xzpeakpromratio'] = 0
+        # if len(peaksxz) > 0:
+        #     self.features['xzpeakprom'] = propertiesxz['prominences'].max()
+        #     self.features['xzpeakpromratio'] = (propertiesxz['prominences'][0]/propertiesxz['prominences'].max()) \
+        #         * (np.abs(peaksxz[0] - peaksxz.max()) + 1)
+        # else:
+        #     self.features['xzpeakprom'] = 0
+        #     self.features['xzpeakpromratio'] = 0
 
-    def get_asymmetries(self, Ridxs=[4,6,8,10,12,14], Lidxs=[3,5,7,9,11,13], 
-        Inidxs=[3, 4, 9, 10], Outidxs=[7, 8, 13, 14],
-        Topidxs=[3, 4, 5, 6, 7, 8], Botidxs=[9, 10, 11, 12, 13, 14]):
+    # def get_asymmetries(self, Ridxs=[4,6,8,10,12,14], Lidxs=[3,5,7,9,11,13], 
+    #     Inidxs=[3, 4, 9, 10], Outidxs=[7, 8, 13, 14],
+    #     Topidxs=[3, 4, 5, 6, 7, 8], Botidxs=[9, 10, 11, 12, 13, 14]):
 
-        def calculate_asymmetry(idxs1, idxs2):
-            movement1 = np.sum([np.sum(np.abs((self.velocity[idx], self.dt))) for idx in idxs1])
-            movement2 = np.sum([np.sum(np.abs((self.velocity[idx], self.dt))) for idx in idxs2])
+    #     def calculate_asymmetry(idxs1, idxs2):
+    #         movement1 = np.sum([np.sum(np.abs((self.velocity[idx], self.dt))) for idx in idxs1])
+    #         movement2 = np.sum([np.sum(np.abs((self.velocity[idx], self.dt))) for idx in idxs2])
 
-            return np.abs(movement1 - movement2)
+    #         return np.abs(movement1 - movement2)
 
-        lr_asymmetry = calculate_asymmetry(Lidxs, Ridxs)
-        tb_asymmetry = calculate_asymmetry(Topidxs, Botidxs)
-        io_asymmetry = calculate_asymmetry(Inidxs, Outidxs)
+    #     lr_asymmetry = calculate_asymmetry(Lidxs, Ridxs)
+    #     tb_asymmetry = calculate_asymmetry(Topidxs, Botidxs)
+    #     io_asymmetry = calculate_asymmetry(Inidxs, Outidxs)
 
-        self.features['tb_asymmetry'] = tb_asymmetry
-        self.features['lr_asymmetry'] = lr_asymmetry
-        self.features['io_asymmetry'] = io_asymmetry
+    #     self.features['tb_asymmetry'] = tb_asymmetry
+    #     self.features['lr_asymmetry'] = lr_asymmetry
+    #     self.features['io_asymmetry'] = io_asymmetry
 
     def get_features(self, sparse=False):
         self.get_movedata()
@@ -242,8 +246,8 @@ class Dance:
         self.get_wrist_ankle_features()
         self.get_expandedness()
         self.get_angularmomentum_features()
-        self.get_angularmomentum_autocorr_features()
-        self.get_asymmetries()
+        #self.get_autocorr_features()
+        #self.get_asymmetries()
 
      
         

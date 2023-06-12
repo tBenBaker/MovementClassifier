@@ -130,6 +130,7 @@ class Dance:
             self.features['ypeaks'] = (len(ypeaks) + len(yapeaks)) / self.numframes
             self.features['xzpeaks'] = (len(xzpeaks) + len(xzapeaks)) / self.numframes
 
+
     def get_wrist_ankle_features(self, sparse=False):
 
         #wrist and ankle acceleration
