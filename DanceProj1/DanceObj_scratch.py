@@ -482,6 +482,44 @@ class Dance:
         #     self.features['peak1_x{}'.format(label)] = peak1x
         #     self.features['prominence1_x{}'.format(label)] = prom1x
 
+    def get_cervical_bend(self, shoulderidxs=[3,4], noseidx=0):
+        # calculate 3D vectors from each shoulder to the nose
+        Lshoulder, Rshoulder = shoulderidxs
+
+        # Calculate a virtual point between the shoulders but 1/3 the way toward the sacrum
+        virtual_sternum = (self.pos[Lshoulder] + self.pos[Rshoulder]) / 2 - self.sacrum[0] / 3
+
+        # Compute a vector from sacrum to virtual sternum
+        midline_vector = virtual_sternum - self.sacrum[0]
+
+        # Calculate the cervical vector from the virtual sternum to the nose
+        cervical_vector = self.pos[noseidx] - virtual_sternum
+
+        # Project the cervical_vector and midline_vector onto the xz-plane to ignore height differences
+        cervical_vector_xz = cervical_vector.copy()
+        cervical_vector_xz[:,1] = 0
+        midline_vector_xz = midline_vector.copy()
+        midline_vector_xz[:,1] = 0
+
+        # Compute the dot product and the magnitudes
+        dot_product = np.sum(cervical_vector_xz * midline_vector_xz, axis=1)
+        cervical_mag = np.linalg.norm(cervical_vector_xz, axis=1)
+        midline_mag = np.linalg.norm(midline_vector_xz, axis=1)
+
+        # Compute the angle between the cervical and the midline in the xz-plane
+        cervical_bend_angle = np.arctan2(cervical_mag * midline_mag - dot_product, dot_product)
+
+        # Store the mean and standard deviation of the cervical bend angle as features
+        self.features['cervicalbend'] = cervical_bend_angle.mean()
+        self.features['cervicalbendstd'] = cervical_bend_angle.std()
+
+        # Compute the rate of change (derivative) of the cervical bend angle
+        cervical_bend_angle_derivative = np.diff(cervical_bend_angle)
+
+        # Store the mean and standard deviation of the derivative as features
+        self.features['cervicalbendrate'] = cervical_bend_angle_derivative.mean()
+        self.features['cervicalbendratestd'] = cervical_bend_angle_derivative.std()
+
             
 
     def get_joint_corr_features(self, sparse):
@@ -527,6 +565,7 @@ class Dance:
         self.features['Genre'] = self.genre
         self.get_mofeatures(sparse=sparse)
         self.get_expandedness(sparse=sparse)
+        #self.get_cervical_bend()
         #self.get_asymmetries(sparse=sparse)
         #self.get_joint_corr_features(sparse=sparse)
 

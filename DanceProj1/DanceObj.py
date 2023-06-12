@@ -166,6 +166,9 @@ class Dance:
         
         expa = Dsfromsacrum.sum(axis=0)                         #sum over joints to get expandedness per frame per dimension
         expa = expa.sum(axis=1)                                 #sum over dimensions to get expandedness over frames
+        #calculate absolute value of jerk of expandedness
+        expajerk = np.diff(expa, n=2, axis=0)
+        expajerk = np.abs(expajerk)
 
         self.features['Expandedness'] = expa.sum()/self.numframes
         self.features['Expandedness_std'] = expa.std()
