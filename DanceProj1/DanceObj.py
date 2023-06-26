@@ -89,12 +89,34 @@ class Dance:
         sacrumjerkmag = np.linalg.norm(sacrumjer, axis=1)
         sacrumjerkmag = np.mean(sacrumjerkmag)
         self.features['sacrumjerkmag'] = sacrumjerkmag
-        #get it just in positive y dimension
+        #get it just in y dimension
         sacrumjerky = sacrumjer[:,1]
         sacrumjerky = np.mean(sacrumjerky)
         self.features['sacrumjerky'] = sacrumjerky
 
+    def get_wrist_ankle_features(self, sparse=False):
+
+        #wrist and ankle acceleration
+        Lwrist, Rwrist = [7,8] 
+        Lankle, Rankle = [13,14]
         
+        wristacc = (np.abs(self.acceleration[Lwrist]) + np.abs(self.acceleration[Rwrist])) / 2   
+        ankleacc = (np.abs(self.acceleration[Lankle]) + np.abs(self.acceleration[Rankle])) / 2  
+
+        self.features['wristacceleration'] = wristacc.mean()
+        self.features['wristaccstd'] = wristacc.std()           
+        self.features['ankleacceleration'] = ankleacc.mean()
+        self.features['ankleaccstd'] = ankleacc.std()
+        
+        #ankle height
+        #compute lowest point of ankle
+        floor = min(self.pos[Rankle][:,1]) 
+        ankleheight = (self.pos[Lankle][:,1] + self.pos[Rankle][:,1] / 2) - floor
+        ankleheightm = ankleheight.mean()
+        
+        self.features['ankleheight'] = ankleheightm
+        self.features['ankleheightstd'] = ankleheight.std() #how much is the dancer lifting their feet
+
     def get_angularmomentum_features(self, sparse=False):
         #angular momentum of each joint, summed over all joints
         #sparse = True returns minimal array of features 
@@ -131,30 +153,6 @@ class Dance:
             self.features['xzpeaks'] = (len(xzpeaks) + len(xzapeaks)) / self.numframes
 
 
-    def get_wrist_ankle_features(self, sparse=False):
-
-        #wrist and ankle acceleration
-        Lwrist, Rwrist = [7,8] 
-        Lankle, Rankle = [13,14]
-        
-        wristacc = (np.abs(self.acceleration[Lwrist]) + np.abs(self.acceleration[Rwrist])) / 2   
-        ankleacc = (np.abs(self.acceleration[Lankle]) + np.abs(self.acceleration[Rankle])) / 2  
-
-        self.features['wristacceleration'] = wristacc.mean()
-        self.features['wristaccstd'] = wristacc.std()           
-        self.features['ankleacceleration'] = ankleacc.mean()
-        self.features['ankleaccstd'] = ankleacc.std()
-        
-        #ankle height
-        #compute lowest point of ankle
-        floor = min(self.pos[Rankle][:,1]) 
-        ankleheight = (self.pos[Lankle][:,1] + self.pos[Rankle][:,1] / 2) - floor
-        ankleheightm = ankleheight.mean()
-        
-        self.features['ankleheight'] = ankleheightm
-        self.features['ankleheightstd'] = ankleheight.std() #how much is the dancer lifting their feet
-
-
     def get_expandedness(self, sparse=False):   #expandedness ~ distance of joints from sacrum
         
         self.get_sacrum()
@@ -182,6 +180,8 @@ class Dance:
         self.get_angularmomentum_features(sparse=sparse)
         self.get_wrist_ankle_features(sparse=sparse)
         self.get_expandedness(sparse=sparse)
+        
+        
      
         
         
