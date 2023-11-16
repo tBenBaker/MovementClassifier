@@ -74,6 +74,44 @@ def get_data(path):
             genredataFM[list(genredataFM.keys())[i]].append((pos,id))
 
     return genredataBM, genredataFM 
+
+def create_sliding_windows(sequence, window_sizes=[120, 240]):
+    """
+    Create sliding windows of various sizes from the given 3D pose sequence.
+    
+    Parameters:
+    - sequence (numpy array): The input 3D pose sequence with shape (joints, frames, dimensions).
+    - window_sizes (list): List of window sizes to use for creating sub-sequences.
+    
+    Returns:
+    - windows_dict (dict): Dictionary where keys are window sizes and values are lists of sub-sequences.
+    """
+    # Initialize dictionary to store sub-sequences for each window size
+    windows_dict = {}
+    
+    # Total number of frames in the sequence
+    total_frames = sequence.shape[1]
+    
+    # Loop through each specified window size
+    for win_size in window_sizes:
+        
+        # Initialize list to store sub-sequences for this window size
+        sub_sequences = []
+        
+        # Skip this window size if the sequence is shorter than the window
+        if total_frames < win_size:
+            continue
+        
+        # Create sub-sequences by sliding the window
+        for start in range(0, total_frames - win_size + 1, 30):  # Sliding step of 30 frames
+            end = start + win_size
+            sub_seq = sequence[:, start:end, :]
+            sub_sequences.append(sub_seq)
+        
+        # Add to the dictionary
+        windows_dict[win_size] = sub_sequences
+    
+    return windows_dict
     
 def data_to_features(dataBM, dataFM, sparse=False):
 
@@ -114,6 +152,41 @@ def data_to_features(dataBM, dataFM, sparse=False):
     dfBM = pd.DataFrame(featuresBM)
     dfFM = pd.DataFrame(featuresFM)            
             
+    return dfBM, dfFM
+
+def data_to_windowed_features(dataBM, dataFM, sparse=False, window_sizes=[120, 240]):
+
+    featuresBM = []  # list for feature-dictionaries for all basic dances    
+    featuresFM = []  # list for feature-dictionaries for all advanced dances
+    errors = []
+
+    for dataset, features in [(dataBM, featuresBM), (dataFM, featuresFM)]:
+        for genre in dataset:
+            for i in range(len(dataset[genre])):
+                # Create windows using the create_sliding_windows function
+                windows_dict = create_sliding_windows(dataset[genre][i][0], window_sizes)
+
+                for win_size, windows in windows_dict.items():
+                    for window in windows:
+                        dance = Dance(window, 1/60)  # Create Dance object for each window
+                        dance.genre = genre  # Add genre
+                        dance.id = dataset[genre][i][1]  # Add id
+                        dance.window_size = win_size  # Add window size
+                        dance.features["window size"] = win_size
+                        try:
+                            dance.get_features(sparse=sparse)
+                        except IndexError:
+                            print(f"Error on ID {dance.id}, Window Size {win_size}")
+                            errors.append((dance.id, win_size))
+                            continue
+                        features.append(dance.features)
+
+    print(f'There were index errors on {len(errors)} windows')
+
+    # Turn these into dataframes
+    dfBM = pd.DataFrame(featuresBM)
+    dfFM = pd.DataFrame(featuresFM)
+
     return dfBM, dfFM
         
      

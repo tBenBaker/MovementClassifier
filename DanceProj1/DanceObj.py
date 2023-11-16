@@ -23,7 +23,8 @@ class Dance:
         #quarter-second intervals across frames, for measuring feature stats across moments
         
         self.id = []        #initialize variables to be set below
-        self.genre = []       
+        self.genre = []
+        self.window_size = None       
         self.velocity = []
         self.acceleration = []
         self.jerk = []
@@ -175,6 +176,7 @@ class Dance:
     def get_features(self, sparse=False):
         self.features['id'] = self.id
         self.features['Genre'] = self.genre
+        self.features['window size'] = self.window_size
         self.get_movedata()
         self.get_sacrum()
         self.get_angularmomentum_features(sparse=sparse)
