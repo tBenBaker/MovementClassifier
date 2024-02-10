@@ -85,17 +85,17 @@ class Dance:
         #standard deviation of sacrum position, avg across 3 dimensions
         sacrumstd = np.std(sacrumpos, axis=0)
         sacrumstd = np.mean(sacrumstd)
-        self.features['sacrumstd'] = sacrumstd
+        self.features['sacrum_std'] = sacrumstd
         #average absolute value of jerk of sacrum, avg across 3 dimensions
         sacrumjerkmag = np.linalg.norm(sacrumjer, axis=1)
         sacrumjerkmag = np.mean(sacrumjerkmag)
-        self.features['sacrumjerkmag'] = sacrumjerkmag
+        self.features['sacrum_jerkiness'] = sacrumjerkmag
         #get it just in y dimension
         sacrumjerky = sacrumjer[:,1]
         sacrumjerky = np.mean(sacrumjerky)
-        self.features['sacrumjerky'] = sacrumjerky
+        self.features['sacrum_bounciness'] = sacrumjerky
 
-    def get_wrist_ankle_features(self, sparse=False):
+    def get_wrist_ankle(self, sparse=False):
 
         #wrist and ankle acceleration
         Lwrist, Rwrist = [7,8] 
@@ -104,10 +104,10 @@ class Dance:
         wristacc = (np.abs(self.acceleration[Lwrist]) + np.abs(self.acceleration[Rwrist])) / 2   
         ankleacc = (np.abs(self.acceleration[Lankle]) + np.abs(self.acceleration[Rankle])) / 2  
 
-        self.features['wristacceleration'] = wristacc.mean()
-        self.features['wristaccstd'] = wristacc.std()           
-        self.features['ankleacceleration'] = ankleacc.mean()
-        self.features['ankleaccstd'] = ankleacc.std()
+        self.features['wrist_acceleration'] = wristacc.mean()
+        self.features['wrist_accel_std'] = wristacc.std()           
+        self.features['ankle_acceleration'] = ankleacc.mean()
+        self.features['ankle_accel_std'] = ankleacc.std()
         
         #ankle height
         #compute lowest point of ankle
@@ -115,10 +115,10 @@ class Dance:
         ankleheight = (self.pos[Lankle][:,1] + self.pos[Rankle][:,1] / 2) - floor
         ankleheightm = ankleheight.mean()
         
-        self.features['ankleheight'] = ankleheightm
-        self.features['ankleheightstd'] = ankleheight.std() #how much is the dancer lifting their feet
+        self.features['ankle_height'] = ankleheightm
+        self.features['ankle_height_std'] = ankleheight.std() #how much is the dancer lifting their feet
 
-    def get_angularmomentum_features(self, sparse=False):
+    def get_angularmomentum(self, sparse=False):
         #angular momentum of each joint, summed over all joints
         #sparse = True returns minimal array of features 
         
@@ -131,7 +131,7 @@ class Dance:
         
         if sparse==True:
             self.features['angularmomentum'] = angmomm
-            self.features['angularmomentumstd'] = angmomm.std()
+            self.features['angularmomentum_std'] = angmomm.std()
 
             peaks, properties = find_peaks(angmom, height=0, distance=30, prominence=500, width=10)
             apeaks, aproperties = find_peaks(-angmom, height=0, distance=30, prominence=500, width=10)
@@ -154,6 +154,49 @@ class Dance:
             self.features['xzpeaks'] = (len(xzpeaks) + len(xzapeaks)) / self.numframes
 
 
+    # def get_rhythmreg(self, sparse=False):
+    #     # Ensure sacrum and angular momentum are calculated
+    #     self.get_sacrum()
+
+    #     # Initialize storage for autocorrelations in each dimension
+    #     corrsx = np.empty((self.numjoints, 2*self.numframes-1))
+    #     corrsy = np.empty_like(corrsx)
+    #     corrsz = np.empty_like(corrsx)
+
+    #     # Calculate autocorrelations for each dimension of each joint's angular momentum
+    #     for j in range(self.numjoints):
+    #         angmom_x = np.cross(self.pos[j] - self.sacrum[0], np.abs(self.velocity[j]))[:, 0]
+    #         angmom_y = np.cross(self.pos[j] - self.sacrum[0], np.abs(self.velocity[j]))[:, 1]
+    #         angmom_z = np.cross(self.pos[j] - self.sacrum[0], np.abs(self.velocity[j]))[:, 2]
+
+    #         corrsx[j] = np.correlate(angmom_x, angmom_x, mode='full')
+    #         corrsy[j] = np.correlate(angmom_y, angmom_y, mode='full')
+    #         corrsz[j] = np.correlate(angmom_z, angmom_z, mode='full')
+
+    #     # we average the autocorrelations across all joints before peak detection
+    #     avg_corrsx = np.mean(corrsx, axis=0)
+    #     avg_corrsy = np.mean(corrsy, axis=0)
+    #     avg_corrsz = np.mean(corrsz, axis=0)
+
+    #     # Find peaks for each averaged autocorrelation
+    #     xpeaks, properties = find_peaks(avg_corrsx, height=0, distance=30, prominence=500, width=10)
+    #     xapeaks, xaproperties = find_peaks(-avg_corrsx, height=0, distance=30, prominence=500, width=10)
+    #     ypeaks, yproperties = find_peaks(avg_corrsy, height=0, distance=30, prominence=500, width=10)
+    #     yapeaks, yaproperties = find_peaks(-avg_corrsy, height=0, distance=30, prominence=500, width=10)
+    #     zpeaks, zproperties = find_peaks(avg_corrsz, height=0, distance=30, prominence=500, width=10)
+    #     zapeaks, zaproperties = find_peaks(-avg_corrsz, height=0, distance=30, prominence=500, width=10)
+
+    #     # Calculate "peakiness" as number of peaks normalized by the number of frames
+    #     peakiness_x = (len(xpeaks) + len(xapeaks)) / self.numframes
+    #     peakiness_y = (len(ypeaks) + len(yapeaks)) / self.numframes
+    #     peakiness_z = (len(zpeaks) + len(zapeaks)) / self.numframes
+
+    #     # Store the features
+    #     self.features['rhythmregx'] = peakiness_x
+    #     self.features['rhythmregy'] = peakiness_y
+    #     self.features['rhythmregz'] = peakiness_z
+
+    
     def get_expandedness(self, sparse=False):   #expandedness ~ distance of joints from sacrum
         
         self.get_sacrum()
@@ -169,18 +212,19 @@ class Dance:
         expajerk = np.diff(expa, n=2, axis=0)
         expajerk = np.abs(expajerk)
 
-        self.features['Expandedness'] = expa.sum()/self.numframes
-        self.features['Expandedness_std'] = expa.std()
+        self.features['expandedness'] = expa.sum()/self.numframes
+        self.features['expandedness_std'] = expa.std()
 
 
     def get_features(self, sparse=False):
         self.features['id'] = self.id
         self.features['Genre'] = self.genre
-        self.features['window size'] = self.window_size
+        #self.features['window size'] = self.window_size
         self.get_movedata()
         self.get_sacrum()
-        self.get_angularmomentum_features(sparse=sparse)
-        self.get_wrist_ankle_features(sparse=sparse)
+        self.get_angularmomentum(sparse=sparse)
+        #self.get_rhythmreg(sparse=sparse)
+        self.get_wrist_ankle(sparse=sparse)
         self.get_expandedness(sparse=sparse)
         
         
