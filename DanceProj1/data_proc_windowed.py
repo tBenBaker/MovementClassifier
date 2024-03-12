@@ -75,49 +75,122 @@ def get_data(path):
 
     return genredataBM, genredataFM 
 
+def create_windows(sequence, window_sizes=[120], stepsize=30):
+    """
+    Create windows, i.e. sub-sequences from the given 3D pose sequence.
+    
+    Parameters:
+    - sequence (numpy array): The input 3D pose sequence with shape (joints, frames, dimensions).
+    - window_sizes (list): List of window sizes to use for creating sub-sequences.
+    
+    Returns:
+    - windows_dict (dict): Dictionary where keys are window sizes and values are lists of sub-sequences.
+    """
+    # Initialize dictionary to store sub-sequences for each window size
+    windows_dict = {}
+    
+    # Total number of frames in the sequence
+    total_frames = sequence.shape[1]
+    
+    # Loop through each specified window size
+    for win_size in window_sizes:
+        
+        # Initialize list to store sub-sequences for this window size
+        sub_sequences = []
+        
+        # Skip this window size if the sequence is shorter than the window
+        if total_frames < win_size:
+            continue
+        
+        # Create sub-sequences by sliding the window
+        for start in range(0, total_frames - win_size + 1, stepsize):  # Sliding step of 30 frames
+            end = start + win_size
+            sub_seq = sequence[:, start:end, :]
+            sub_sequences.append(sub_seq)
+        
+        # Add to the dictionary
+        windows_dict[win_size] = sub_sequences
+    
+    return windows_dict
 
-def data_to_features(dataBM, dataFM, sparse=False):
+# function for deriving the features from pose sequence data. No windows here.     
+# def data_to_features(dataBM, dataFM, sparse=False):
 
-    featuresBM = []                     # list for feature-dictionaries for all basic dances    
+#     featuresBM = []                     # list for feature-dictionaries for all basic dances    
+#     errors = []
+
+#     for genre in dataBM:
+#         for i in range(len(dataBM[genre])):
+#             dance = Dance(dataBM[genre][i][0], 1/60)   #create Dance object for each basic dance
+#             dance.genre = genre                             #add genre
+#             dance.id = dataBM[genre][i][1]             #add id
+#             try:
+#                 dance.get_features(sparse=sparse)    #do a try / except here, print the ID where the error occured and then continue    
+#             except IndexError:
+#                 print(dance.id)
+#                 errors.append(dance.id)
+#                 continue
+#             featuresBM.append(dance.features)                   #add feature-dict to list
+    
+#     featuresFM = []                     # repeat for all advanced dances
+#     for genre in dataFM:
+#         for i in range(len(dataFM[genre])):
+#             dance = Dance(dataFM[genre][i][0], 1/60)
+#             dance.genre = genre
+#             dance.id = dataFM[genre][i][1]
+#             try:
+#                 dance.get_features(sparse=sparse)
+#             except IndexError:
+#                 print(dance.id)
+#                 errors.append(dance.id)
+#                 continue
+#             featuresFM.append(dance.features)
+    
+#     print('there were index errors on', len(errors), 'dances')
+
+            
+#     #turn these into dataframes
+#     dfBM = pd.DataFrame(featuresBM)
+#     dfFM = pd.DataFrame(featuresFM)            
+            
+#     return dfBM, dfFM
+
+# function for deriving the features from pose sequence data on all the windows for each sequence
+def data_to_windowed_features(dataBM, dataFM, sparse=False, window_sizes=[120]):
+
+    featuresBM = []  # list for feature-dictionaries for all basic dances    
+    featuresFM = []  # list for feature-dictionaries for all advanced dances
     errors = []
 
-    for genre in dataBM:
-        for i in range(len(dataBM[genre])):
-            dance = Dance(dataBM[genre][i][0], 1/60)   #create Dance object for each basic dance
-            dance.genre = genre                             #add genre
-            dance.id = dataBM[genre][i][1]             #add id
-            try:
-                dance.get_features(sparse=sparse)    #do a try / except here, print the ID where the error occured and then continue    
-            except IndexError:
-                print(dance.id)
-                errors.append(dance.id)
-                continue
-            featuresBM.append(dance.features)                   #add feature-dict to list
-    
-    featuresFM = []                     # repeat for all advanced dances
-    for genre in dataFM:
-        for i in range(len(dataFM[genre])):
-            dance = Dance(dataFM[genre][i][0], 1/60)
-            dance.genre = genre
-            dance.id = dataFM[genre][i][1]
-            try:
-                dance.get_features(sparse=sparse)
-            except IndexError:
-                print(dance.id)
-                errors.append(dance.id)
-                continue
-            featuresFM.append(dance.features)
-    
-    print('there were index errors on', len(errors), 'dances')
+    for dataset, features in [(dataBM, featuresBM), (dataFM, featuresFM)]:
+        for genre in dataset:
+            for i in range(len(dataset[genre])):
+                # Create windows using the create_sliding_windows function
+                windows_dict = create_windows(dataset[genre][i][0], window_sizes)
 
-            
-    #turn these into dataframes
+                for win_size, windows in windows_dict.items():
+                    for window_index, window in enumerate(windows):
+                        dance = Dance(window, 1/60)  # Create Dance object for each window
+                        dance.genre = genre  # Add genre
+                        dance.id = dataset[genre][i][1]  # Add id
+                        dance.window_size = win_size  # Add window size
+                        dance.features["window size"] = win_size
+                        dance.features["window number"] = window_index
+                        try:
+                            dance.get_features(sparse=sparse)
+                        except IndexError:
+                            print(f"Error on ID {dance.id}, Window Size {win_size}")
+                            errors.append((dance.id, win_size))
+                            continue
+                        features.append(dance.features)
+
+    print(f'There were index errors on {len(errors)} windows')
+
+    # Turn these into dataframes
     dfBM = pd.DataFrame(featuresBM)
-    dfFM = pd.DataFrame(featuresFM)            
-            
+    dfFM = pd.DataFrame(featuresFM)
+
     return dfBM, dfFM
-
-
         
      
 def traintestval_split(dfBasic, dfAdvanced, testfrac_adv=.51, testfrac_bas=0, valfrac_adv_nonT=0, valfrac_bas=0):
